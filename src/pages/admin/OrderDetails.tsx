@@ -25,7 +25,7 @@ export default function OrderDetails() {
   const order = data?.order || data;
 
   const statusMutation = useMutation({
-    mutationFn: () => api.updateOrderStatus(id!, { orderStatus: newStatus, trackingId }),
+    mutationFn: () => api.updateOrderStatus(id!, { status: newStatus, trackingId }),
     onSuccess: () => { queryClient.invalidateQueries({ queryKey: ["order", id] }); toast.success("Order status updated"); },
     onError: (e: Error) => toast.error(e.message),
   });
@@ -50,9 +50,9 @@ export default function OrderDetails() {
             <h3 className="font-semibold">Customer & Shipping</h3>
           </div>
           <div className="space-y-2 text-sm">
-            <p><span className="text-muted-foreground">Name:</span> {order.user?.name || order.shippingAddress?.fullName}</p>
-            <p><span className="text-muted-foreground">Email:</span> {order.user?.email || order.shippingAddress?.email}</p>
-            <p><span className="text-muted-foreground">Address:</span> {order.shippingAddress?.address}, {order.shippingAddress?.city}, {order.shippingAddress?.postalCode}</p>
+            <p><span className="text-muted-foreground">Name:</span> {order.user?.name || order.shippingAddress?.name}</p>
+            <p><span className="text-muted-foreground">Email:</span> {order.user?.email || "N/A"}</p>
+            <p><span className="text-muted-foreground">Address:</span> {order.shippingAddress?.street}, {order.shippingAddress?.city}, {order.shippingAddress?.state} - {order.shippingAddress?.zip}</p>
             <p><span className="text-muted-foreground">Phone:</span> {order.shippingAddress?.phone || "N/A"}</p>
           </div>
         </div>
@@ -65,9 +65,9 @@ export default function OrderDetails() {
           </div>
           <div className="space-y-2 text-sm">
             <p><span className="text-muted-foreground">Method:</span> {order.paymentMethod || "N/A"}</p>
-            <p><span className="text-muted-foreground">Status:</span> <StatusBadge status={order.isPaid ? "paid" : "pending"} /></p>
-            <p><span className="text-muted-foreground">Total:</span> <span className="font-mono font-semibold">${order.totalPrice?.toFixed(2)}</span></p>
-            <p><span className="text-muted-foreground">Tax:</span> <span className="font-mono">${order.taxPrice?.toFixed(2) || "0.00"}</span></p>
+            <p><span className="text-muted-foreground">Status:</span> <StatusBadge status={order.paymentStatus || "pending"} /></p>
+            <p><span className="text-muted-foreground">Total:</span> <span className="font-mono font-semibold">RS. {order.total?.toFixed(2)}</span></p>
+            <p><span className="text-muted-foreground">Tax:</span> <span className="font-mono">RS. {order.taxPrice?.toFixed(2) || "0.00"}</span></p>
           </div>
         </div>
       </div>
@@ -79,16 +79,16 @@ export default function OrderDetails() {
           <h3 className="font-semibold">Order Items</h3>
         </div>
         <div className="space-y-3">
-          {order.orderItems?.map((item: any, i: number) => (
+          {(order.items || order.orderItems || []).map((item: any, i: number) => (
             <div key={i} className="flex items-center gap-4 p-3 rounded-lg bg-secondary/30">
               <div className="w-12 h-12 rounded-lg bg-muted overflow-hidden">
                 {item.image ? <img src={item.image} alt={item.name} className="w-full h-full object-cover" /> : <Package className="w-full h-full p-3 text-muted-foreground" />}
               </div>
               <div className="flex-1">
                 <p className="font-medium text-sm">{item.name}</p>
-                <p className="text-xs text-muted-foreground">Qty: {item.qty || item.quantity}</p>
+                <p className="text-xs text-muted-foreground">Qty: {item.quantity || item.qty || 1}</p>
               </div>
-              <p className="font-mono text-sm">${(item.price * (item.qty || item.quantity || 1)).toFixed(2)}</p>
+              <p className="font-mono text-sm">RS. {(item.price * (item.qty || item.quantity || 1)).toFixed(2)}</p>
             </div>
           ))}
         </div>

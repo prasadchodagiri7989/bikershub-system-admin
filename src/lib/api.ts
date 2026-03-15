@@ -60,13 +60,32 @@ export const api = {
 
   // Analytics
   getAnalytics: (range: number) => request<any>(`/admin/analytics?range=${range}`),
+  getDashboard: () => request<any>("/admin/dashboard"),
+  getCategoryBreakdown: (range = 30) => request<any>(`/admin/analytics/category-breakdown?range=${range}`),
 
-  // Products - bulk import
+  // Users - role / status
+  promoteUser: (id: string, role: "admin" | "user") =>
+    request<any>(`/users/${id}`, { method: "PUT", body: JSON.stringify({ role }) }),
+  toggleUserActive: (id: string) =>
+    request<any>(`/users/${id}/ban`, { method: "PUT" }),
+
+  // Products - bulk import (CSV file upload)
   bulkImportProducts: (file: File) => {
     const fd = new FormData();
     fd.append("file", file);
     return upload<any>("/admin/products/bulk-import", fd);
   },
+
+  // Products - bulk import (JSON rows with selection support)
+  bulkImportProductsJson: (rows: Record<string, string>[]) =>
+    request<any>("/admin/products/bulk-import-json", {
+      method: "POST",
+      body: JSON.stringify(rows),
+    }),
+
+  // AI Insights - Gemini powered
+  generateAIInsights: () =>
+    request<any>("/admin/ai-insights/gemini", { method: "POST" }),
 
   // Auth
   login: (email: string, password: string) => request<any>("/auth/login", { method: "POST", body: JSON.stringify({ email, password }) }),
