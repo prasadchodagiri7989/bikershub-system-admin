@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { ArrowLeft, Image as ImageIcon, Globe, Sparkles } from "lucide-react";
-import { api } from "@/lib/api";
+import { api, API_BASE } from "@/lib/api";
 import { PageHeader } from "@/components/admin/SharedComponents";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -104,7 +104,7 @@ export default function ProductForm() {
     const toastId = toast.loading("AI is generating product details...");
     try {
       const token = localStorage.getItem("admin_token");
-      const res = await fetch(`http://localhost:5000/api/admin/products/ai-fill`, {
+      const res = await fetch(`${API_BASE}/admin/products/ai-fill`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",

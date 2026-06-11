@@ -7,6 +7,8 @@ import { Input } from "@/components/ui/input";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Checkbox } from "@/components/ui/checkbox";
 import { toast } from "sonner";
+import { API_BASE } from "@/lib/api";
+
 
 export default function AIScraper() {
   const [url, setUrl] = useState("");
@@ -18,7 +20,7 @@ export default function AIScraper() {
   const scrapeMutation = useMutation({
     mutationFn: async (targetUrl: string) => {
       const token = localStorage.getItem("admin_token");
-      const res = await fetch("http://localhost:5000/api/admin/products/ai-scrape", {
+      const res = await fetch(`${API_BASE}/admin/products/ai-scrape`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -47,7 +49,7 @@ export default function AIScraper() {
   const importMutation = useMutation({
     mutationFn: async (selectedProducts: any[]) => {
       const token = localStorage.getItem("admin_token");
-      const res = await fetch("http://localhost:5000/api/admin/products/bulk-import-json", {
+      const res = await fetch(`${API_BASE}/admin/products/bulk-import-json`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",

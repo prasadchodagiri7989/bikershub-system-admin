@@ -6,6 +6,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { toast } from "sonner";
+import { API_BASE } from "@/lib/api";
+
 
 export default function Transactions() {
   const [search, setSearch] = useState("");
@@ -16,7 +18,7 @@ export default function Transactions() {
     queryKey: ["transactions", page, search],
     queryFn: async () => {
       const token = localStorage.getItem("admin_token");
-      let url = `http://localhost:5000/api/admin/transactions?page=${page}&limit=10`;
+      let url = `${API_BASE}/admin/transactions?page=${page}&limit=10`;
       if (search) url += `&search=${encodeURIComponent(search)}`;
       const res = await fetch(url, {
         headers: { "Authorization": `Bearer ${token}` }
@@ -29,7 +31,7 @@ export default function Transactions() {
   const refundMutation = useMutation({
     mutationFn: async (orderId: string) => {
       const token = localStorage.getItem("admin_token");
-      const res = await fetch(`http://localhost:5000/api/admin/transactions/${orderId}/refund`, {
+      const res = await fetch(`${API_BASE}/admin/transactions/${orderId}/refund`, {
         method: "POST",
         headers: { "Authorization": `Bearer ${token}` }
       });

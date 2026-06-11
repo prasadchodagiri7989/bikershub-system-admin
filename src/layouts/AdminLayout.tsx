@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { Link, useLocation, Outlet, useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
+import { API_BASE } from "@/lib/api";
 import {
   LayoutDashboard, Package, ShoppingCart, Users, Star, BarChart3,
   Brain, Settings, ChevronLeft, ChevronRight, Search, Bell, Moon, Sun,
@@ -58,7 +59,6 @@ export default function AdminLayout() {
     document.addEventListener("keydown", down);
     return () => document.removeEventListener("keydown", down);
   }, []);
-
   // Fetch universal search results
   useEffect(() => {
     if (!searchQuery.trim()) {
@@ -69,7 +69,7 @@ export default function AdminLayout() {
       setLoadingSearch(true);
       try {
         const token = localStorage.getItem("admin_token");
-        const res = await fetch(`http://localhost:5000/api/admin/search?q=${encodeURIComponent(searchQuery)}`, {
+        const res = await fetch(`${API_BASE}/admin/search?q=${encodeURIComponent(searchQuery)}`, {
           headers: {
             "Authorization": `Bearer ${token}`
           }
