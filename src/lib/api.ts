@@ -98,4 +98,14 @@ export const api = {
 
   // Profile (current user)
   updateProfile: (data: any) => request<any>("/auth/me", { method: "PUT", body: JSON.stringify(data) }),
+
+  // ── Shiprocket ────────────────────────────────────────────
+  getShiprocketStats: () => request<any>("/admin/shiprocket/stats"),
+  getShiprocketOrders: (params?: string) => request<any>(`/admin/shiprocket/orders${params ? `?${params}` : ""}`),
+  getShiprocketSrOrders: (params?: string) => request<any>(`/admin/shiprocket/sr-orders${params ? `?${params}` : ""}`),
+  shiprocketGenerateAwb: (orderId: string) => request<any>(`/admin/shiprocket/orders/${orderId}/generate-awb`, { method: "POST" }),
+  shiprocketRequestPickup: (orderId: string) => request<any>(`/admin/shiprocket/orders/${orderId}/request-pickup`, { method: "POST" }),
+  shiprocketGenerateLabel: (orderId: string) => request<any>(`/admin/shiprocket/orders/${orderId}/generate-label`, { method: "POST" }),
+  shiprocketCancelOrder: (orderId: string) => request<any>(`/admin/shiprocket/orders/${orderId}/cancel`, { method: "POST" }),
+  shiprocketTrack: (awb: string) => request<any>(`/admin/shiprocket/track/${awb}`),
 };

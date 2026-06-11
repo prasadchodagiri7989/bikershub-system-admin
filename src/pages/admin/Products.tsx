@@ -1,4 +1,4 @@
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Link } from "react-router-dom";
 import {
@@ -84,9 +84,19 @@ export default function Products() {
   const queryClient = useQueryClient();
   const fileInputRef = useRef<HTMLInputElement>(null);
 
+  // Reset page when search or category changes
+  useEffect(() => {
+    setPage(1);
+  }, [search, category]);
+
   const { data, isLoading } = useQuery({
-    queryKey: ["products", page],
-    queryFn: () => api.getProducts(`page=${page}&limit=20`),
+    queryKey: ["products", page, search, category],
+    queryFn: () => {
+      let query = `page=${page}&limit=20`;
+      if (search) query += `&search=${encodeURIComponent(search)}`;
+      if (category && category !== "all") query += `&category=${encodeURIComponent(category)}`;
+      return api.getProducts(query);
+    },
   });
 
   const deleteMutation = useMutation({
@@ -148,9 +158,41 @@ export default function Products() {
   }
 
   function downloadTemplate() {
-    const headers = ["name", "description", "price", "category", "brand", "stock", "images", "tags"];
-    const example = ["Racing Helmet Pro", "Full-face motorcycle helmet", "199.99", "Helmets", "RacePro", "50", "https://example.com/img.jpg", "helmet,racing"];
-    const csv = [headers.join(","), example.join(",")].join("\n");
+    const headers = [
+      "name", "description", "price", "originalPrice", "discount", "rating",
+      "reviewCount", "category", "compatibleBikes", "sizes", "colors", "badge",
+      "image", "images", "specifications", "inStock", "stockQuantity", "brand", "tags"
+    ];
+    const example = [
+      "Stealth Carbon Full-Face Helmet",
+      "Premium carbon fiber full-face helmet with advanced ventilation",
+      "189.99",
+      "249.99",
+      "24",
+      "4.8",
+      "342",
+      "Helmets",
+      "All",
+      "S|M|L|XL",
+      "Matte Black:#1a1a1a|Gloss White:#f5f5f5|Racing Orange:#FF6A2B",
+      "bestseller",
+      "https://images.unsplash.com/photo-1558618666-fcd25c85f7e7",
+      "https://images.unsplash.com/photo-1558618666-fcd25c85f7e7|https://images.unsplash.com/photo-1609634700683-85843a0c1135",
+      "Material:Carbon Fiber|Weight:1.3 kg|Certification:DOT, ECE 22.06",
+      "true",
+      "50",
+      "Yamaha",
+      "helmet,safety"
+    ];
+    const csv = [
+      headers.join(","),
+      example.map(val => {
+        const escaped = val.replace(/"/g, '""');
+        return escaped.includes(",") || escaped.includes('"') || escaped.includes('\n') || escaped.includes('\r')
+          ? `"${escaped}"`
+          : escaped;
+      }).join(",")
+    ].join("\n");
     const blob = new Blob([csv], { type: "text/csv" });
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
@@ -159,12 +201,10 @@ export default function Products() {
   }
 
   const products = Array.isArray(data) ? data : data?.items || data?.products || [];
-  const filtered = products.filter((p: any) => {
-    const matchSearch = p.name?.toLowerCase().includes(search.toLowerCase()) || p.category?.toLowerCase().includes(search.toLowerCase());
-    const matchCategory = category === "all" || p.category === category;
-    return matchSearch && matchCategory;
-  });
-  const categories = [...new Set(products.map((p: any) => p.category).filter(Boolean))] as string[];
+  const filtered = products;
+  const totalPages = data?.pages || Math.ceil((data?.total || 0) / 20) || 1;
+  const standardCategories = ["Helmets", "Riding Gears", "Parts", "Accessories", "Tires", "Airbags", "Winter Gear", "Learn To Ride", "New Riders"];
+  const categories = Array.from(new Set([...standardCategories, ...products.map((p: any) => p.category).filter(Boolean)])) as string[];
 
   const validCount = parsedRows.filter(r => r.errors.length === 0).length;
   const validIndices = parsedRows.map((r, i) => r.errors.length === 0 ? i : -1).filter(i => i >= 0);
@@ -172,7 +212,7 @@ export default function Products() {
 
   return (
     <div className="space-y-6 animate-fade-in">
-      <PageHeader title="Products" description={`${filtered.length} products`}>
+      <PageHeader title="Products" description={`${data?.total ?? filtered.length} products`}>
         <Button variant="outline" size="sm" onClick={downloadTemplate}>
           <Download className="w-4 h-4 mr-2" />CSV Template
         </Button>
@@ -253,8 +293,8 @@ export default function Products() {
 
       <div className="flex justify-between items-center">
         <Button variant="outline" size="sm" onClick={() => setPage(Math.max(1, page - 1))} disabled={page === 1}>Previous</Button>
-        <span className="text-sm text-muted-foreground">Page {page}</span>
-        <Button variant="outline" size="sm" onClick={() => setPage(page + 1)}>Next</Button>
+        <span className="text-sm text-muted-foreground">Page {page} of {totalPages}</span>
+        <Button variant="outline" size="sm" onClick={() => setPage(page + 1)} disabled={page >= totalPages}>Next</Button>
       </div>
 
       {/* ── CSV Preview / Import Dialog ── */}

@@ -14,11 +14,14 @@ const Products = lazy(() => import("./pages/admin/Products"));
 const ProductForm = lazy(() => import("./pages/admin/ProductForm"));
 const Orders = lazy(() => import("./pages/admin/Orders"));
 const OrderDetails = lazy(() => import("./pages/admin/OrderDetails"));
+const Transactions = lazy(() => import("./pages/admin/Transactions"));
 const UsersPage = lazy(() => import("./pages/admin/UsersPage"));
 const Reviews = lazy(() => import("./pages/admin/Reviews"));
 const Analytics = lazy(() => import("./pages/admin/Analytics"));
 const AIInsights = lazy(() => import("./pages/admin/AIInsights"));
+const AIScraper = lazy(() => import("./pages/admin/AIScraper"));
 const SettingsPage = lazy(() => import("./pages/admin/SettingsPage"));
+const ShiprocketPage = lazy(() => import("./pages/admin/Shiprocket"));
 const NotFound = lazy(() => import("./pages/NotFound"));
 
 const queryClient = new QueryClient({
@@ -58,11 +61,14 @@ const App = () => (
                 <Route path="products/:id" element={<ProductForm />} />
                 <Route path="orders" element={<Orders />} />
                 <Route path="orders/:id" element={<OrderDetails />} />
+                <Route path="transactions" element={<Transactions />} />
                 <Route path="users" element={<UsersPage />} />
                 <Route path="reviews" element={<Reviews />} />
                 <Route path="analytics" element={<Analytics />} />
                 <Route path="ai-insights" element={<AIInsights />} />
+                <Route path="ai-scraper" element={<AIScraper />} />
                 <Route path="settings" element={<SettingsPage />} />
+                <Route path="shiprocket" element={<ShiprocketPage />} />
               </Route>
               <Route path="*" element={<NotFound />} />
             </Routes>

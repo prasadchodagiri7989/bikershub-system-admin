@@ -1,10 +1,10 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Link, useLocation, Outlet, useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import {
   LayoutDashboard, Package, ShoppingCart, Users, Star, BarChart3,
   Brain, Settings, ChevronLeft, ChevronRight, Search, Bell, Moon, Sun,
-  LogOut, Menu,
+  LogOut, Menu, Truck, CreditCard, Globe, Plus, Sparkles,
 } from "lucide-react";
 import { useTheme } from "@/hooks/useTheme";
 import { Button } from "@/components/ui/button";
@@ -15,15 +15,21 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { cn } from "@/lib/utils";
+import {
+  CommandDialog, CommandInput, CommandList, CommandEmpty, CommandGroup, CommandItem
+} from "@/components/ui/command";
 
 const navItems = [
   { label: "Dashboard", icon: LayoutDashboard, path: "/admin" },
   { label: "Products", icon: Package, path: "/admin/products" },
   { label: "Orders", icon: ShoppingCart, path: "/admin/orders" },
+  { label: "Transactions", icon: CreditCard, path: "/admin/transactions" },
+  { label: "Shiprocket", icon: Truck, path: "/admin/shiprocket" },
   { label: "Users", icon: Users, path: "/admin/users" },
   { label: "Reviews", icon: Star, path: "/admin/reviews" },
   { label: "Analytics", icon: BarChart3, path: "/admin/analytics" },
   { label: "AI Insights", icon: Brain, path: "/admin/ai-insights" },
+  { label: "AI Scraper", icon: Globe, path: "/admin/ai-scraper" },
   { label: "Settings", icon: Settings, path: "/admin/settings" },
 ];
 
@@ -34,6 +40,53 @@ export default function AdminLayout() {
   const location = useLocation();
   const { user, logout } = useAuth();
   const navigate = useNavigate();
+
+  // Search dialog state
+  const [searchOpen, setSearchOpen] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [searchResults, setSearchResults] = useState<any>({ products: [], users: [], orders: [] });
+  const [loadingSearch, setLoadingSearch] = useState(false);
+
+  // Ctrl+K to open search dialog
+  useEffect(() => {
+    const down = (e: KeyboardEvent) => {
+      if (e.key === "k" && (e.metaKey || e.ctrlKey)) {
+        e.preventDefault();
+        setSearchOpen((open) => !open);
+      }
+    };
+    document.addEventListener("keydown", down);
+    return () => document.removeEventListener("keydown", down);
+  }, []);
+
+  // Fetch universal search results
+  useEffect(() => {
+    if (!searchQuery.trim()) {
+      setSearchResults({ products: [], users: [], orders: [] });
+      return;
+    }
+    const delayDebounceFn = setTimeout(async () => {
+      setLoadingSearch(true);
+      try {
+        const token = localStorage.getItem("admin_token");
+        const res = await fetch(`http://localhost:5000/api/admin/search?q=${encodeURIComponent(searchQuery)}`, {
+          headers: {
+            "Authorization": `Bearer ${token}`
+          }
+        });
+        if (res.ok) {
+          const data = await res.json();
+          setSearchResults(data);
+        }
+      } catch (err) {
+        console.error("Universal search failed:", err);
+      } finally {
+        setLoadingSearch(false);
+      }
+    }, 300);
+
+    return () => clearTimeout(delayDebounceFn);
+  }, [searchQuery]);
 
   function handleLogout() {
     logout();
@@ -61,7 +114,7 @@ export default function AdminLayout() {
             to={item.path}
             onClick={() => setMobileOpen(false)}
             className={cn(
-              "flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all duration-200",
+              "flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-all duration-200",
               collapsed && "justify-center px-2",
               isActive(item.path)
                 ? "bg-primary/10 text-primary"
@@ -116,10 +169,18 @@ export default function AdminLayout() {
             <Button variant="ghost" size="icon" className="lg:hidden" onClick={() => setMobileOpen(true)}>
               <Menu className="w-5 h-5" />
             </Button>
-            <div className="relative hidden sm:block">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-              <Input placeholder="Search..." className="pl-9 w-64 bg-secondary/50 border-border/50" />
-            </div>
+            
+            {/* Clickable Universal Search Input button */}
+            <button
+              onClick={() => setSearchOpen(true)}
+              className="relative hidden sm:flex items-center text-left text-sm text-muted-foreground w-64 bg-secondary/50 hover:bg-secondary/80 border border-border/50 rounded-lg h-9 px-3 transition-colors gap-2"
+            >
+              <Search className="h-4 w-4 shrink-0 opacity-50" />
+              <span>Search...</span>
+              <kbd className="pointer-events-none absolute right-2.5 top-2.5 hidden h-4 select-none items-center gap-1 rounded border border-border bg-muted px-1.5 font-mono text-[10px] font-medium opacity-100 sm:flex">
+                <span className="text-xs">Ctrl</span>K
+              </kbd>
+            </button>
           </div>
 
           <div className="flex items-center gap-2">
@@ -179,6 +240,109 @@ export default function AdminLayout() {
           <Outlet />
         </main>
       </div>
+
+      {/* Universal Search Dialog Modal */}
+      <CommandDialog open={searchOpen} onOpenChange={setSearchOpen}>
+        <CommandInput
+          placeholder="Search products, users, or transactions..."
+          value={searchQuery}
+          onValueChange={setSearchQuery}
+        />
+        <CommandList>
+          {loadingSearch && <div className="p-4 text-center text-sm text-muted-foreground">Searching...</div>}
+          <CommandEmpty>No results found.</CommandEmpty>
+          
+          {searchResults.products?.length > 0 && (
+            <CommandGroup heading="Products">
+              {searchResults.products.map((p: any) => (
+                <CommandItem
+                  key={p._id}
+                  value={`product-${p.name}`}
+                  onSelect={() => {
+                    setSearchOpen(false);
+                    navigate(`/admin/products/${p._id}`);
+                  }}
+                >
+                  <Package className="mr-2 h-4 w-4 text-muted-foreground" />
+                  <span>{p.name}</span>
+                  <span className="ml-auto text-xs text-muted-foreground font-mono">₹{p.price}</span>
+                </CommandItem>
+              ))}
+            </CommandGroup>
+          )}
+
+          {searchResults.users?.length > 0 && (
+            <CommandGroup heading="Users">
+              {searchResults.users.map((u: any) => (
+                <CommandItem
+                  key={u._id}
+                  value={`user-${u.name}-${u.email}`}
+                  onSelect={() => {
+                    setSearchOpen(false);
+                    navigate(`/admin/users`);
+                  }}
+                >
+                  <Users className="mr-2 h-4 w-4 text-muted-foreground" />
+                  <span>{u.name} ({u.email})</span>
+                  <span className="ml-auto text-xs text-muted-foreground font-mono capitalize">{u.role}</span>
+                </CommandItem>
+              ))}
+            </CommandGroup>
+          )}
+
+          {searchResults.orders?.length > 0 && (
+            <CommandGroup heading="Transactions / Orders">
+              {searchResults.orders.map((o: any) => (
+                <CommandItem
+                  key={o._id}
+                  value={`order-${o._id}`}
+                  onSelect={() => {
+                    setSearchOpen(false);
+                    navigate(`/admin/orders`);
+                  }}
+                >
+                  <ShoppingCart className="mr-2 h-4 w-4 text-muted-foreground" />
+                  <span>Order #{o._id.slice(-6)} - {o.user?.name || 'Customer'}</span>
+                  <span className="ml-auto text-xs text-muted-foreground font-mono">₹{o.total}</span>
+                </CommandItem>
+              ))}
+            </CommandGroup>
+          )}
+
+          <CommandGroup heading="Quick Actions">
+            <CommandItem
+              value="action-new-product"
+              onSelect={() => {
+                setSearchOpen(false);
+                navigate("/admin/products/new");
+              }}
+            >
+              <Plus className="mr-2 h-4 w-4 text-muted-foreground" />
+              <span>Add New Product</span>
+            </CommandItem>
+            <CommandItem
+              value="action-scraper"
+              onSelect={() => {
+                setSearchOpen(false);
+                navigate("/admin/ai-scraper");
+              }}
+            >
+              <Globe className="mr-2 h-4 w-4 text-muted-foreground" />
+              <span>AI Product Scraper</span>
+            </CommandItem>
+            <CommandItem
+              value="action-ai-insights"
+              onSelect={() => {
+                setSearchOpen(false);
+                navigate("/admin/ai-insights");
+              }}
+            >
+              <Brain className="mr-2 h-4 w-4 text-muted-foreground" />
+              <span>View AI Insights</span>
+            </CommandItem>
+          </CommandGroup>
+        </CommandList>
+      </CommandDialog>
     </div>
   );
 }
