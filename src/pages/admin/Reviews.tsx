@@ -2,12 +2,11 @@ import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Star, Search, Trash2, Flag } from "lucide-react";
 import { api } from "@/lib/api";
-import { PageHeader, EmptyState } from "@/components/admin/SharedComponents";
+import { PageHeader, EmptyState, StatusBadge } from "@/components/admin/SharedComponents";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
 
 const DATE_RANGES = [
@@ -132,53 +131,99 @@ export default function Reviews() {
           {isLoading ? (
             <div className="p-12 text-center text-muted-foreground">Loading reviews…</div>
           ) : (
-            <Table>
-              <TableHeader>
-                <TableRow className="border-border/50 hover:bg-transparent">
-                  <TableHead>User</TableHead>
-                  <TableHead>Rating</TableHead>
-                  <TableHead>Comment</TableHead>
-                  <TableHead>Date</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead className="text-right">Actions</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
+            <>
+              {/* Desktop / tablet table */}
+              <div className="hidden md:block">
+                <Table>
+                  <TableHeader>
+                    <TableRow className="border-border/50 hover:bg-transparent">
+                      <TableHead>User</TableHead>
+                      <TableHead>Rating</TableHead>
+                      <TableHead>Comment</TableHead>
+                      <TableHead>Date</TableHead>
+                      <TableHead>Status</TableHead>
+                      <TableHead className="text-right">Actions</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {filtered.map((review: any) => (
+                      <TableRow key={review._id || review.id} className="border-border/50">
+                        <TableCell className="font-medium">{review.name || review.user?.name || "Anonymous"}</TableCell>
+                        <TableCell>{renderStars(review.rating)}</TableCell>
+                        <TableCell className="text-muted-foreground max-w-xs truncate">{review.comment}</TableCell>
+                        <TableCell className="text-muted-foreground text-sm">
+                          {review.createdAt ? new Date(review.createdAt).toLocaleDateString() : "N/A"}
+                        </TableCell>
+                        <TableCell>
+                          {review.flagged && <StatusBadge status="Flagged" />}
+                        </TableCell>
+                        <TableCell className="text-right">
+                          <div className="flex items-center justify-end gap-1">
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              onClick={() => flagMutation.mutate(review._id || review.id)}
+                              disabled={flagMutation.isPending}
+                            >
+                              <Flag className="w-4 h-4 text-warning" />
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              onClick={() => deleteMutation.mutate(review._id || review.id)}
+                              disabled={deleteMutation.isPending}
+                            >
+                              <Trash2 className="w-4 h-4 text-destructive" />
+                            </Button>
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
+
+              {/* Mobile card list */}
+              <div className="md:hidden divide-y divide-border/50">
                 {filtered.map((review: any) => (
-                  <TableRow key={review._id || review.id} className="border-border/50">
-                    <TableCell className="font-medium">{review.name || review.user?.name || "Anonymous"}</TableCell>
-                    <TableCell>{renderStars(review.rating)}</TableCell>
-                    <TableCell className="text-muted-foreground max-w-xs truncate">{review.comment}</TableCell>
-                    <TableCell className="text-muted-foreground text-sm">
-                      {review.createdAt ? new Date(review.createdAt).toLocaleDateString() : "N/A"}
-                    </TableCell>
-                    <TableCell>
-                      {review.flagged && <Badge variant="destructive" className="text-xs">Flagged</Badge>}
-                    </TableCell>
-                    <TableCell className="text-right">
-                      <div className="flex items-center justify-end gap-1">
+                  <div key={review._id || review.id} className="p-4">
+                    <div className="flex items-start justify-between gap-2">
+                      <p className="font-medium text-sm truncate">{review.name || review.user?.name || "Anonymous"}</p>
+                      {renderStars(review.rating)}
+                    </div>
+                    <p className="text-sm text-muted-foreground mt-1.5 line-clamp-2">{review.comment}</p>
+                    <div className="flex items-center justify-between mt-2">
+                      <div className="flex items-center gap-2">
+                        {review.flagged && <StatusBadge status="Flagged" />}
+                        <span className="text-xs text-muted-foreground">
+                          {review.createdAt ? new Date(review.createdAt).toLocaleDateString() : "N/A"}
+                        </span>
+                      </div>
+                      <div className="flex items-center gap-1">
                         <Button
                           variant="ghost"
                           size="icon"
+                          className="h-7 w-7"
                           onClick={() => flagMutation.mutate(review._id || review.id)}
                           disabled={flagMutation.isPending}
                         >
-                          <Flag className="w-4 h-4 text-warning" />
+                          <Flag className="w-3.5 h-3.5 text-warning" />
                         </Button>
                         <Button
                           variant="ghost"
                           size="icon"
+                          className="h-7 w-7"
                           onClick={() => deleteMutation.mutate(review._id || review.id)}
                           disabled={deleteMutation.isPending}
                         >
-                          <Trash2 className="w-4 h-4 text-destructive" />
+                          <Trash2 className="w-3.5 h-3.5 text-destructive" />
                         </Button>
                       </div>
-                    </TableCell>
-                  </TableRow>
+                    </div>
+                  </div>
                 ))}
-              </TableBody>
-            </Table>
+              </div>
+            </>
           )}
         </div>
       )}

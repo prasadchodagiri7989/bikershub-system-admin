@@ -52,47 +52,79 @@ export default function Orders() {
         ) : filtered.length === 0 ? (
           <EmptyState icon={ShoppingCart} title="No orders found" description="No orders match your current filters." />
         ) : (
-          <Table>
-            <TableHeader>
-              <TableRow className="border-border/50 hover:bg-transparent">
-                <TableHead>Order ID</TableHead>
-                <TableHead>Customer</TableHead>
-                <TableHead>Total</TableHead>
-                <TableHead>Payment</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead>Date</TableHead>
-                <TableHead className="text-right">Actions</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
+          <>
+            {/* Desktop / tablet table */}
+            <div className="hidden md:block">
+              <Table>
+                <TableHeader>
+                  <TableRow className="border-border/50 hover:bg-transparent">
+                    <TableHead>Order ID</TableHead>
+                    <TableHead>Customer</TableHead>
+                    <TableHead>Total</TableHead>
+                    <TableHead>Payment</TableHead>
+                    <TableHead>Status</TableHead>
+                    <TableHead>Date</TableHead>
+                    <TableHead className="text-right">Actions</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {filtered.map((order: any) => (
+                    <TableRow key={order._id || order.id} className="border-border/50">
+                      <TableCell className="font-mono text-sm">{(order._id || order.id)?.slice(-8)}</TableCell>
+                      <TableCell>
+                        <div className="min-w-0">
+                          <div className="font-medium truncate">{order.user?.name || order.shippingAddress?.fullName || "N/A"}</div>
+                          <div className="text-xs text-muted-foreground truncate">{order.user?.email || order.shippingAddress?.email}</div>
+                        </div>
+                      </TableCell>
+                      <TableCell className="font-mono">${order.totalPrice?.toFixed(2) || order.total}</TableCell>
+                      <TableCell>
+                        <StatusBadge status={order.isPaid || order.paymentStatus === "paid" ? "paid" : "pending"} />
+                      </TableCell>
+                      <TableCell>
+                        <StatusBadge status={order.orderStatus || order.status || "processing"} />
+                      </TableCell>
+                      <TableCell className="text-muted-foreground text-sm">
+                        {order.createdAt ? new Date(order.createdAt).toLocaleDateString() : "N/A"}
+                      </TableCell>
+                      <TableCell className="text-right">
+                        <Button variant="ghost" size="icon" asChild>
+                          <Link to={`/admin/orders/${order._id || order.id}`}><Eye className="w-4 h-4" /></Link>
+                        </Button>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
+
+            {/* Mobile card list */}
+            <div className="md:hidden divide-y divide-border/50">
               {filtered.map((order: any) => (
-                <TableRow key={order._id || order.id} className="border-border/50">
-                  <TableCell className="font-mono text-sm">{(order._id || order.id)?.slice(-8)}</TableCell>
-                  <TableCell>
-                    <div>
-                      <div className="font-medium">{order.user?.name || order.shippingAddress?.fullName || "N/A"}</div>
-                      <div className="text-xs text-muted-foreground">{order.user?.email || order.shippingAddress?.email}</div>
-                    </div>
-                  </TableCell>
-                  <TableCell className="font-mono">${order.totalPrice?.toFixed(2) || order.total}</TableCell>
-                  <TableCell>
-                    <StatusBadge status={order.isPaid || order.paymentStatus === "paid" ? "paid" : "pending"} />
-                  </TableCell>
-                  <TableCell>
+                <Link
+                  key={order._id || order.id}
+                  to={`/admin/orders/${order._id || order.id}`}
+                  className="block p-4 active:bg-secondary/30"
+                >
+                  <div className="flex items-start justify-between gap-2">
+                    <span className="font-mono text-sm font-medium">#{(order._id || order.id)?.slice(-8)}</span>
+                    <span className="font-mono text-sm shrink-0">${order.totalPrice?.toFixed(2) || order.total}</span>
+                  </div>
+                  <div className="min-w-0 mt-1">
+                    <p className="text-sm truncate">{order.user?.name || order.shippingAddress?.fullName || "N/A"}</p>
+                    <p className="text-xs text-muted-foreground truncate">{order.user?.email || order.shippingAddress?.email}</p>
+                  </div>
+                  <div className="flex items-center gap-2 mt-2">
                     <StatusBadge status={order.orderStatus || order.status || "processing"} />
-                  </TableCell>
-                  <TableCell className="text-muted-foreground text-sm">
-                    {order.createdAt ? new Date(order.createdAt).toLocaleDateString() : "N/A"}
-                  </TableCell>
-                  <TableCell className="text-right">
-                    <Button variant="ghost" size="icon" asChild>
-                      <Link to={`/admin/orders/${order._id || order.id}`}><Eye className="w-4 h-4" /></Link>
-                    </Button>
-                  </TableCell>
-                </TableRow>
+                    <StatusBadge status={order.isPaid || order.paymentStatus === "paid" ? "paid" : "pending"} />
+                    <span className="text-xs text-muted-foreground ml-auto">
+                      {order.createdAt ? new Date(order.createdAt).toLocaleDateString() : "N/A"}
+                    </span>
+                  </div>
+                </Link>
               ))}
-            </TableBody>
-          </Table>
+            </div>
+          </>
         )}
       </div>
     </div>

@@ -75,7 +75,7 @@ export default function SettingsPage() {
       <PageHeader title="Settings" description="Manage your admin preferences" />
 
       <Tabs defaultValue="profile">
-        <TabsList className="bg-secondary/50">
+        <TabsList className="bg-secondary/50 w-full sm:w-auto max-w-full overflow-x-auto justify-start">
           <TabsTrigger value="profile" className="gap-2"><User className="w-3.5 h-3.5" />Profile</TabsTrigger>
           <TabsTrigger value="password" className="gap-2"><Lock className="w-3.5 h-3.5" />Password</TabsTrigger>
           <TabsTrigger value="store" className="gap-2"><Store className="w-3.5 h-3.5" />Store</TabsTrigger>

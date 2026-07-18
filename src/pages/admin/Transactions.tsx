@@ -85,73 +85,115 @@ export default function Transactions() {
             <p className="text-xs max-w-xs">Transactions show here once prepaid/Razorpay orders are created and verified.</p>
           </div>
         ) : (
-          <Table>
-            <TableHeader>
-              <TableRow className="border-border/50 hover:bg-transparent">
-                <TableHead>Date</TableHead>
-                <TableHead>Transaction / Order ID</TableHead>
-                <TableHead>Razorpay Details</TableHead>
-                <TableHead>Customer</TableHead>
-                <TableHead>Amount</TableHead>
-                <TableHead>Payment Status</TableHead>
-                <TableHead>Order Status</TableHead>
-                <TableHead className="text-right">Actions</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
+          <>
+            {/* Desktop / tablet table */}
+            <div className="hidden md:block">
+              <Table>
+                <TableHeader>
+                  <TableRow className="border-border/50 hover:bg-transparent">
+                    <TableHead>Date</TableHead>
+                    <TableHead>Transaction / Order ID</TableHead>
+                    <TableHead>Razorpay Details</TableHead>
+                    <TableHead>Customer</TableHead>
+                    <TableHead>Amount</TableHead>
+                    <TableHead>Payment Status</TableHead>
+                    <TableHead>Order Status</TableHead>
+                    <TableHead className="text-right">Actions</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {transactions.map((tx: any) => (
+                    <TableRow key={tx._id} className="border-border/50">
+                      <TableCell className="text-sm">
+                        {new Date(tx.createdAt).toLocaleDateString("en-IN", {
+                          day: "numeric",
+                          month: "short",
+                          year: "numeric"
+                        })}
+                      </TableCell>
+                      <TableCell className="font-mono text-xs font-semibold">
+                        #{tx.orderId.slice(-8).toUpperCase()}
+                      </TableCell>
+                      <TableCell className="space-y-1">
+                        <div className="text-xs font-mono text-muted-foreground">
+                          Pay ID: {tx.razorpayPaymentId || <span className="opacity-40">—</span>}
+                        </div>
+                        <div className="text-xs font-mono text-muted-foreground">
+                          Order ID: {tx.razorpayOrderId || <span className="opacity-40">—</span>}
+                        </div>
+                      </TableCell>
+                      <TableCell className="space-y-0.5">
+                        <div className="font-medium text-sm">{tx.user?.name || "Guest Customer"}</div>
+                        <div className="text-xs text-muted-foreground">{tx.user?.email || ""}</div>
+                      </TableCell>
+                      <TableCell className="font-mono font-semibold text-sm">
+                        ₹{tx.total}
+                      </TableCell>
+                      <TableCell>
+                        <StatusBadge status={tx.paymentStatus === "paid" ? "Paid" : tx.paymentStatus === "failed" ? "Failed" : "Pending"} />
+                      </TableCell>
+                      <TableCell>
+                        <StatusBadge status={tx.status === "delivered" ? "Delivered" : tx.status === "cancelled" ? "Cancelled" : "Processing"} />
+                      </TableCell>
+                      <TableCell className="text-right">
+                        {tx.paymentStatus === "paid" ? (
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => refundMutation.mutate(tx.orderId)}
+                            disabled={refundMutation.isPending}
+                            className="text-destructive border-destructive/20 hover:bg-destructive/10 hover:border-destructive/40 transition-all gap-1.5"
+                          >
+                            <CornerUpLeft className="w-3.5 h-3.5" />
+                            Refund
+                          </Button>
+                        ) : (
+                          <span className="text-xs text-muted-foreground/40 font-medium select-none">No Action</span>
+                        )}
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
+
+            {/* Mobile card list */}
+            <div className="md:hidden divide-y divide-border/50">
               {transactions.map((tx: any) => (
-                <TableRow key={tx._id} className="border-border/50">
-                  <TableCell className="text-sm">
-                    {new Date(tx.createdAt).toLocaleDateString("en-IN", {
-                      day: "numeric",
-                      month: "short",
-                      year: "numeric"
-                    })}
-                  </TableCell>
-                  <TableCell className="font-mono text-xs font-semibold">
-                    #{tx.orderId.slice(-8).toUpperCase()}
-                  </TableCell>
-                  <TableCell className="space-y-1">
-                    <div className="text-xs font-mono text-muted-foreground">
-                      Pay ID: {tx.razorpayPaymentId || <span className="opacity-40">—</span>}
-                    </div>
-                    <div className="text-xs font-mono text-muted-foreground">
-                      Order ID: {tx.razorpayOrderId || <span className="opacity-40">—</span>}
-                    </div>
-                  </TableCell>
-                  <TableCell className="space-y-0.5">
-                    <div className="font-medium text-sm">{tx.user?.name || "Guest Customer"}</div>
-                    <div className="text-xs text-muted-foreground">{tx.user?.email || ""}</div>
-                  </TableCell>
-                  <TableCell className="font-mono font-semibold text-sm">
-                    ₹{tx.total}
-                  </TableCell>
-                  <TableCell>
+                <div key={tx._id} className="p-4">
+                  <div className="flex items-start justify-between gap-2">
+                    <span className="font-mono text-xs font-semibold">#{tx.orderId.slice(-8).toUpperCase()}</span>
+                    <span className="font-mono font-semibold text-sm shrink-0">₹{tx.total}</span>
+                  </div>
+                  <div className="flex items-center gap-2 mt-1.5">
                     <StatusBadge status={tx.paymentStatus === "paid" ? "Paid" : tx.paymentStatus === "failed" ? "Failed" : "Pending"} />
-                  </TableCell>
-                  <TableCell>
                     <StatusBadge status={tx.status === "delivered" ? "Delivered" : tx.status === "cancelled" ? "Cancelled" : "Processing"} />
-                  </TableCell>
-                  <TableCell className="text-right">
-                    {tx.paymentStatus === "paid" ? (
+                  </div>
+                  <div className="min-w-0 mt-2">
+                    <p className="text-sm truncate">{tx.user?.name || "Guest Customer"}</p>
+                    <p className="text-xs text-muted-foreground truncate">{tx.user?.email || ""}</p>
+                  </div>
+                  <div className="flex items-center justify-between mt-2">
+                    <span className="text-xs text-muted-foreground">
+                      {new Date(tx.createdAt).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" })}
+                    </span>
+                    {tx.paymentStatus === "paid" && (
                       <Button
                         variant="outline"
                         size="sm"
                         onClick={() => refundMutation.mutate(tx.orderId)}
                         disabled={refundMutation.isPending}
-                        className="text-destructive border-destructive/20 hover:bg-destructive/10 hover:border-destructive/40 transition-all gap-1.5"
+                        className="text-destructive border-destructive/20 hover:bg-destructive/10 hover:border-destructive/40 transition-all gap-1.5 h-7 text-xs"
                       >
-                        <CornerUpLeft className="w-3.5 h-3.5" />
+                        <CornerUpLeft className="w-3 h-3" />
                         Refund
                       </Button>
-                    ) : (
-                      <span className="text-xs text-muted-foreground/40 font-medium select-none">No Action</span>
                     )}
-                  </TableCell>
-                </TableRow>
+                  </div>
+                </div>
               ))}
-            </TableBody>
-          </Table>
+            </div>
+          </>
         )}
       </div>
 

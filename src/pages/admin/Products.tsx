@@ -245,49 +245,87 @@ export default function Products() {
         ) : filtered.length === 0 ? (
           <EmptyState icon={Package} title="No products found" description="Try adjusting your search or filters." />
         ) : (
-          <Table>
-            <TableHeader>
-              <TableRow className="border-border/50 hover:bg-transparent">
-                <TableHead className="w-12">Image</TableHead>
-                <TableHead>Name</TableHead>
-                <TableHead>Category</TableHead>
-                <TableHead>Price</TableHead>
-                <TableHead>Stock</TableHead>
-                <TableHead>Rating</TableHead>
-                <TableHead className="text-right">Actions</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
+          <>
+            {/* Desktop / tablet table */}
+            <div className="hidden md:block">
+              <Table>
+                <TableHeader>
+                  <TableRow className="border-border/50 hover:bg-transparent">
+                    <TableHead className="w-12">Image</TableHead>
+                    <TableHead>Name</TableHead>
+                    <TableHead>Category</TableHead>
+                    <TableHead>Price</TableHead>
+                    <TableHead>Stock</TableHead>
+                    <TableHead>Rating</TableHead>
+                    <TableHead className="text-right">Actions</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {filtered.map((product: any) => (
+                    <TableRow key={product._id || product.id} className="border-border/50">
+                      <TableCell>
+                        <div className="w-10 h-10 rounded-lg bg-muted overflow-hidden">
+                          {(product.image || product.images?.[0]) ? (
+                            <img src={product.image || product.images[0]} alt={product.name} className="w-full h-full object-cover" />
+                          ) : (
+                            <div className="w-full h-full flex items-center justify-center"><Package className="w-4 h-4 text-muted-foreground" /></div>
+                          )}
+                        </div>
+                      </TableCell>
+                      <TableCell className="font-medium">{product.name}</TableCell>
+                      <TableCell><span className="text-muted-foreground">{product.category}</span></TableCell>
+                      <TableCell className="font-mono">₹{product.price}</TableCell>
+                      <TableCell>
+                        <StatusBadge status={product.stockQuantity > 10 || product.stock > 10 ? "In Stock" : (product.stockQuantity ?? product.stock ?? 0) > 0 ? "Low Stock" : "Out of Stock"} />
+                        <span className="ml-2 text-sm text-muted-foreground font-mono">{product.stockQuantity ?? product.stock ?? product.countInStock ?? 0}</span>
+                      </TableCell>
+                      <TableCell>⭐ {product.rating?.toFixed(1) || "N/A"}</TableCell>
+                      <TableCell className="text-right">
+                        <div className="flex items-center justify-end gap-1">
+                          <Button variant="ghost" size="icon" asChild><Link to={`/admin/products/${product._id || product.id}`}><Eye className="w-4 h-4" /></Link></Button>
+                          <Button variant="ghost" size="icon" asChild><Link to={`/admin/products/${product._id || product.id}`}><Pencil className="w-4 h-4" /></Link></Button>
+                          <Button variant="ghost" size="icon" onClick={() => deleteMutation.mutate(product._id || product.id)}><Trash2 className="w-4 h-4 text-destructive" /></Button>
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
+
+            {/* Mobile card list */}
+            <div className="md:hidden divide-y divide-border/50">
               {filtered.map((product: any) => (
-                <TableRow key={product._id || product.id} className="border-border/50">
-                  <TableCell>
-                    <div className="w-10 h-10 rounded-lg bg-muted overflow-hidden">
-                      {(product.image || product.images?.[0]) ? (
-                        <img src={product.image || product.images[0]} alt={product.name} className="w-full h-full object-cover" />
-                      ) : (
-                        <div className="w-full h-full flex items-center justify-center"><Package className="w-4 h-4 text-muted-foreground" /></div>
-                      )}
+                <div key={product._id || product.id} className="p-4 flex gap-3">
+                  <div className="w-12 h-12 rounded-lg bg-muted overflow-hidden shrink-0">
+                    {(product.image || product.images?.[0]) ? (
+                      <img src={product.image || product.images[0]} alt={product.name} className="w-full h-full object-cover" />
+                    ) : (
+                      <div className="w-full h-full flex items-center justify-center"><Package className="w-4 h-4 text-muted-foreground" /></div>
+                    )}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-start justify-between gap-2">
+                      <p className="font-medium text-sm truncate">{product.name}</p>
+                      <span className="font-mono text-sm shrink-0">₹{product.price}</span>
                     </div>
-                  </TableCell>
-                  <TableCell className="font-medium">{product.name}</TableCell>
-                  <TableCell><span className="text-muted-foreground">{product.category}</span></TableCell>
-                  <TableCell className="font-mono">₹{product.price}</TableCell>
-                  <TableCell>
-                    <StatusBadge status={product.stockQuantity > 10 || product.stock > 10 ? "In Stock" : (product.stockQuantity ?? product.stock ?? 0) > 0 ? "Low Stock" : "Out of Stock"} />
-                    <span className="ml-2 text-sm text-muted-foreground">{product.stockQuantity ?? product.stock ?? product.countInStock ?? 0}</span>
-                  </TableCell>
-                  <TableCell>⭐ {product.rating?.toFixed(1) || "N/A"}</TableCell>
-                  <TableCell className="text-right">
-                    <div className="flex items-center justify-end gap-1">
-                      <Button variant="ghost" size="icon" asChild><Link to={`/admin/products/${product._id || product.id}`}><Eye className="w-4 h-4" /></Link></Button>
-                      <Button variant="ghost" size="icon" asChild><Link to={`/admin/products/${product._id || product.id}`}><Pencil className="w-4 h-4" /></Link></Button>
-                      <Button variant="ghost" size="icon" onClick={() => deleteMutation.mutate(product._id || product.id)}><Trash2 className="w-4 h-4 text-destructive" /></Button>
+                    <div className="flex items-center gap-2 mt-1.5">
+                      <StatusBadge status={product.stockQuantity > 10 || product.stock > 10 ? "In Stock" : (product.stockQuantity ?? product.stock ?? 0) > 0 ? "Low Stock" : "Out of Stock"} />
+                      <span className="text-xs text-muted-foreground font-mono">{product.stockQuantity ?? product.stock ?? product.countInStock ?? 0} units</span>
                     </div>
-                  </TableCell>
-                </TableRow>
+                    <div className="flex items-center justify-between mt-2">
+                      <span className="text-xs text-muted-foreground truncate">{product.category} · ⭐ {product.rating?.toFixed(1) || "N/A"}</span>
+                      <div className="flex items-center gap-1 shrink-0">
+                        <Button variant="ghost" size="icon" className="h-7 w-7" asChild><Link to={`/admin/products/${product._id || product.id}`}><Eye className="w-3.5 h-3.5" /></Link></Button>
+                        <Button variant="ghost" size="icon" className="h-7 w-7" asChild><Link to={`/admin/products/${product._id || product.id}`}><Pencil className="w-3.5 h-3.5" /></Link></Button>
+                        <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => deleteMutation.mutate(product._id || product.id)}><Trash2 className="w-3.5 h-3.5 text-destructive" /></Button>
+                      </div>
+                    </div>
+                  </div>
+                </div>
               ))}
-            </TableBody>
-          </Table>
+            </div>
+          </>
         )}
       </div>
 
@@ -317,7 +355,7 @@ export default function Products() {
             {importResult ? (
               // ── Result view ──
               <div className="space-y-5">
-                <div className="grid grid-cols-3 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                   <div className="rounded-xl border border-success/20 bg-success/5 p-4 text-center">
                     <div className="text-3xl font-bold text-success">{importResult.imported}</div>
                     <div className="text-sm text-muted-foreground mt-1">Imported</div>

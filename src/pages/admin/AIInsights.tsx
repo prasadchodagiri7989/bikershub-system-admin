@@ -53,13 +53,13 @@ export default function AIInsights() {
   return (
     <div className="space-y-6 animate-fade-in">
       <PageHeader title="AI Insights" description="Cificap AI-powered analysis of your platform data">
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2">
           {phase === "done" && (
-            <Button variant="outline" size="sm" onClick={generateAnalysis} disabled={phase === "loading"}>
+            <Button variant="outline" size="sm" onClick={generateAnalysis} disabled={(phase as string) === "loading"}>
               <RefreshCw className="w-4 h-4 mr-2" />Regenerate
             </Button>
           )}
-          <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-primary/10 text-primary text-sm font-medium">
+          <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-primary/10 text-primary text-sm font-medium whitespace-nowrap">
             <Brain className="w-4 h-4" />
             Powered by Cificap AI
           </div>
@@ -123,11 +123,11 @@ export default function AIInsights() {
           {/* Executive Summary */}
           {insights.summary && (
             <div className="rounded-xl border border-primary/20 bg-primary/5 p-5">
-              <div className="flex items-center gap-2 mb-2">
-                <Brain className="w-4 h-4 text-primary" />
+              <div className="flex flex-wrap items-center gap-2 mb-2">
+                <Brain className="w-4 h-4 text-primary shrink-0" />
                 <h3 className="font-semibold text-sm">Executive Summary</h3>
                 {insights.generatedAt && (
-                  <span className="ml-auto text-xs text-muted-foreground">
+                  <span className="ml-auto text-xs text-muted-foreground whitespace-nowrap">
                     {new Date(insights.generatedAt).toLocaleTimeString()}
                   </span>
                 )}

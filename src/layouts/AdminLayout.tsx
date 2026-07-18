@@ -20,18 +20,43 @@ import {
   CommandDialog, CommandInput, CommandList, CommandEmpty, CommandGroup, CommandItem
 } from "@/components/ui/command";
 
-const navItems = [
-  { label: "Dashboard", icon: LayoutDashboard, path: "/admin" },
-  { label: "Products", icon: Package, path: "/admin/products" },
-  { label: "Orders", icon: ShoppingCart, path: "/admin/orders" },
-  { label: "Transactions", icon: CreditCard, path: "/admin/transactions" },
-  { label: "Shiprocket", icon: Truck, path: "/admin/shiprocket" },
-  { label: "Users", icon: Users, path: "/admin/users" },
-  { label: "Reviews", icon: Star, path: "/admin/reviews" },
-  { label: "Analytics", icon: BarChart3, path: "/admin/analytics" },
-  { label: "AI Insights", icon: Brain, path: "/admin/ai-insights" },
-  { label: "AI Scraper", icon: Globe, path: "/admin/ai-scraper" },
-  { label: "Settings", icon: Settings, path: "/admin/settings" },
+const navSections = [
+  {
+    label: "Overview",
+    items: [
+      { label: "Dashboard", icon: LayoutDashboard, path: "/admin" },
+      { label: "Analytics", icon: BarChart3, path: "/admin/analytics" },
+      { label: "AI Insights", icon: Brain, path: "/admin/ai-insights" },
+    ],
+  },
+  {
+    label: "Catalog",
+    items: [
+      { label: "Products", icon: Package, path: "/admin/products" },
+      { label: "AI Scraper", icon: Globe, path: "/admin/ai-scraper" },
+    ],
+  },
+  {
+    label: "Sales",
+    items: [
+      { label: "Orders", icon: ShoppingCart, path: "/admin/orders" },
+      { label: "Transactions", icon: CreditCard, path: "/admin/transactions" },
+      { label: "Shiprocket", icon: Truck, path: "/admin/shiprocket" },
+    ],
+  },
+  {
+    label: "People",
+    items: [
+      { label: "Users", icon: Users, path: "/admin/users" },
+      { label: "Reviews", icon: Star, path: "/admin/reviews" },
+    ],
+  },
+  {
+    label: "Settings",
+    items: [
+      { label: "Settings", icon: Settings, path: "/admin/settings" },
+    ],
+  },
 ];
 
 export default function AdminLayout() {
@@ -98,45 +123,63 @@ export default function AdminLayout() {
     return location.pathname.startsWith(path);
   };
 
-  const SidebarContent = () => (
-    <div className="flex flex-col h-full">
-      <div className={cn("flex items-center gap-2 px-4 h-16 border-b border-border/50", collapsed && "justify-center px-2")}>
-        <div className="w-8 h-8 rounded-lg bg-primary flex items-center justify-center">
-          <span className="text-primary-foreground font-bold text-sm">BH</span>
+  const SidebarContent = ({ forceExpanded = false }: { forceExpanded?: boolean }) => {
+    const isCollapsed = collapsed && !forceExpanded;
+    return (
+    <div className="flex flex-col h-full bg-sidebar text-sidebar-foreground">
+      <div className={cn("flex items-center gap-2 px-4 h-16 border-b border-sidebar-border", isCollapsed && "justify-center px-2")}>
+        <div className="w-8 h-8 rounded-sm bg-sidebar-active flex items-center justify-center shrink-0">
+          <span className="text-white font-bold text-sm">BH</span>
         </div>
-        {!collapsed && <span className="font-bold text-lg tracking-tight">BikersHub</span>}
+        {!isCollapsed && <span className="font-bold text-lg tracking-tight text-sidebar-foreground">BikersHub</span>}
       </div>
 
-      <nav className="flex-1 py-4 space-y-1 px-2 overflow-y-auto">
-        {navItems.map((item) => (
-          <Link
-            key={item.path}
-            to={item.path}
-            onClick={() => setMobileOpen(false)}
-            className={cn(
-              "flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-all duration-200",
-              collapsed && "justify-center px-2",
-              isActive(item.path)
-                ? "bg-primary/10 text-primary"
-                : "text-muted-foreground hover:text-foreground hover:bg-accent"
+      <nav className="flex-1 py-4 space-y-4 px-2 overflow-y-auto">
+        {navSections.map((section) => (
+          <div key={section.label}>
+            {!isCollapsed && (
+              <div className="px-3 mb-1 text-[10px] font-semibold tracking-[.08em] uppercase text-sidebar-muted">
+                {section.label}
+              </div>
             )}
-          >
-            <item.icon className="w-5 h-5 shrink-0" />
-            {!collapsed && <span>{item.label}</span>}
-          </Link>
+            <div className="space-y-1">
+              {section.items.map((item) => {
+                const active = isActive(item.path);
+                return (
+                  <Link
+                    key={item.path}
+                    to={item.path}
+                    onClick={() => setMobileOpen(false)}
+                    style={active ? { background: "color-mix(in oklch, hsl(var(--sidebar-active)) 18%, transparent)" } : undefined}
+                    className={cn(
+                      "flex items-center gap-3 px-3 py-2 text-sm font-medium transition-all duration-200 border-l-2",
+                      isCollapsed && "justify-center px-2",
+                      active
+                        ? "border-sidebar-active text-sidebar-foreground"
+                        : "border-transparent text-sidebar-muted hover:text-sidebar-foreground hover:bg-sidebar-accent/50"
+                    )}
+                  >
+                    <item.icon className="w-5 h-5 shrink-0" />
+                    {!isCollapsed && <span>{item.label}</span>}
+                  </Link>
+                );
+              })}
+            </div>
+          </div>
         ))}
       </nav>
 
-      <div className="p-2 border-t border-border/50">
+      <div className="p-2 border-t border-sidebar-border">
         <button
           onClick={() => setCollapsed(!collapsed)}
-          className="hidden lg:flex w-full items-center justify-center gap-2 px-3 py-2 rounded-lg text-sm text-muted-foreground hover:text-foreground hover:bg-accent transition-colors"
+          className="hidden lg:flex w-full items-center justify-center gap-2 px-3 py-2 text-sm text-sidebar-muted hover:text-sidebar-foreground hover:bg-sidebar-accent/50 transition-colors"
         >
-          {collapsed ? <ChevronRight className="w-4 h-4" /> : <><ChevronLeft className="w-4 h-4" /><span>Collapse</span></>}
+          {isCollapsed ? <ChevronRight className="w-4 h-4" /> : <><ChevronLeft className="w-4 h-4" /><span>Collapse</span></>}
         </button>
       </div>
     </div>
-  );
+    );
+  };
 
   return (
     <div className="flex h-screen overflow-hidden bg-background">
@@ -147,15 +190,15 @@ export default function AdminLayout() {
 
       {/* Sidebar - mobile */}
       <aside className={cn(
-        "fixed inset-y-0 left-0 z-50 w-64 bg-card border-r border-border/50 transform transition-transform duration-200 lg:hidden",
+        "fixed inset-y-0 left-0 z-50 w-64 bg-sidebar border-r border-sidebar-border transform transition-transform duration-200 lg:hidden",
         mobileOpen ? "translate-x-0" : "-translate-x-full"
       )}>
-        <SidebarContent />
+        <SidebarContent forceExpanded />
       </aside>
 
       {/* Sidebar - desktop */}
       <aside className={cn(
-        "hidden lg:flex flex-col border-r border-border/50 bg-card transition-all duration-200",
+        "hidden lg:flex flex-col border-r border-sidebar-border bg-sidebar transition-all duration-200",
         collapsed ? "w-16" : "w-64"
       )}>
         <SidebarContent />

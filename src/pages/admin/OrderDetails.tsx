@@ -35,32 +35,34 @@ export default function OrderDetails() {
 
   return (
     <div className="space-y-6 animate-fade-in max-w-4xl">
-      <div className="flex items-center gap-3">
-        <Button variant="ghost" size="icon" onClick={() => navigate("/admin/orders")}>
+      <div className="flex items-center gap-3 min-w-0">
+        <Button variant="ghost" size="icon" onClick={() => navigate("/admin/orders")} className="shrink-0">
           <ArrowLeft className="w-4 h-4" />
         </Button>
-        <PageHeader title={`Order #${(order._id || order.id)?.slice(-8)}`} description={`Placed on ${order.createdAt ? new Date(order.createdAt).toLocaleDateString() : "N/A"}`} />
+        <div className="min-w-0">
+          <PageHeader title={`Order #${(order._id || order.id)?.slice(-8)}`} description={`Placed on ${order.createdAt ? new Date(order.createdAt).toLocaleDateString() : "N/A"}`} />
+        </div>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         {/* Customer Info */}
-        <div className="rounded-xl border border-border/50 bg-card p-5 space-y-3">
+        <div className="rounded-xl border border-border/50 bg-card p-4 md:p-5 space-y-3 min-w-0">
           <div className="flex items-center gap-2 mb-1">
-            <MapPin className="w-4 h-4 text-primary" />
+            <MapPin className="w-4 h-4 text-primary shrink-0" />
             <h3 className="font-semibold">Customer & Shipping</h3>
           </div>
-          <div className="space-y-2 text-sm">
+          <div className="space-y-2 text-sm break-words">
             <p><span className="text-muted-foreground">Name:</span> {order.user?.name || order.shippingAddress?.name}</p>
             <p><span className="text-muted-foreground">Email:</span> {order.user?.email || "N/A"}</p>
             <p><span className="text-muted-foreground">Address:</span> {order.shippingAddress?.street}, {order.shippingAddress?.city}, {order.shippingAddress?.state} - {order.shippingAddress?.zip}</p>
-            <p><span className="text-muted-foreground">Phone:</span> {order.shippingAddress?.phone || "N/A"}</p>
+            <p><span className="text-muted-foreground">Phone:</span> <span className="font-mono">{order.shippingAddress?.phone || "N/A"}</span></p>
           </div>
         </div>
 
         {/* Payment Info */}
-        <div className="rounded-xl border border-border/50 bg-card p-5 space-y-3">
+        <div className="rounded-xl border border-border/50 bg-card p-4 md:p-5 space-y-3 min-w-0">
           <div className="flex items-center gap-2 mb-1">
-            <CreditCard className="w-4 h-4 text-primary" />
+            <CreditCard className="w-4 h-4 text-primary shrink-0" />
             <h3 className="font-semibold">Payment Details</h3>
           </div>
           <div className="space-y-2 text-sm">
@@ -73,7 +75,7 @@ export default function OrderDetails() {
       </div>
 
       {/* Order Items */}
-      <div className="rounded-xl border border-border/50 bg-card p-5">
+      <div className="rounded-xl border border-border/50 bg-card p-4 md:p-5">
         <div className="flex items-center gap-2 mb-4">
           <Package className="w-4 h-4 text-primary" />
           <h3 className="font-semibold">Order Items</h3>
@@ -81,21 +83,21 @@ export default function OrderDetails() {
         <div className="space-y-3">
           {(order.items || order.orderItems || []).map((item: any, i: number) => (
             <div key={i} className="flex items-center gap-4 p-3 rounded-lg bg-secondary/30">
-              <div className="w-12 h-12 rounded-lg bg-muted overflow-hidden">
+              <div className="w-12 h-12 rounded-lg bg-muted overflow-hidden shrink-0">
                 {item.image ? <img src={item.image} alt={item.name} className="w-full h-full object-cover" /> : <Package className="w-full h-full p-3 text-muted-foreground" />}
               </div>
-              <div className="flex-1">
-                <p className="font-medium text-sm">{item.name}</p>
+              <div className="flex-1 min-w-0">
+                <p className="font-medium text-sm truncate">{item.name}</p>
                 <p className="text-xs text-muted-foreground">Qty: {item.quantity || item.qty || 1}</p>
               </div>
-              <p className="font-mono text-sm">RS. {(item.price * (item.qty || item.quantity || 1)).toFixed(2)}</p>
+              <p className="font-mono text-sm shrink-0">RS. {(item.price * (item.qty || item.quantity || 1)).toFixed(2)}</p>
             </div>
           ))}
         </div>
       </div>
 
       {/* Update Status */}
-      <div className="rounded-xl border border-border/50 bg-card p-5">
+      <div className="rounded-xl border border-border/50 bg-card p-4 md:p-5">
         <div className="flex items-center gap-2 mb-4">
           <Clock className="w-4 h-4 text-primary" />
           <h3 className="font-semibold">Update Order</h3>

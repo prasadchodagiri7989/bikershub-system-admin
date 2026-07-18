@@ -8,8 +8,8 @@ import { api } from "@/lib/api";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { StatusBadge } from "@/components/admin/SharedComponents";
 import { toast } from "sonner";
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription,
@@ -17,22 +17,22 @@ import {
 
 function StatCard({ icon: Icon, label, value, color }: { icon: any; label: string; value: number; color: string }) {
   return (
-    <div className="rounded-xl border border-border/50 bg-card p-5 flex items-center gap-4">
-      <div className={`w-12 h-12 rounded-xl flex items-center justify-center ${color}`}>
+    <div className="rounded-xl border border-border/50 bg-card p-4 md:p-5 flex items-center gap-4">
+      <div className={`w-12 h-12 rounded-xl flex items-center justify-center shrink-0 ${color}`}>
         <Icon className="w-5 h-5" />
       </div>
-      <div>
+      <div className="min-w-0">
         <p className="text-2xl font-bold">{value ?? 0}</p>
-        <p className="text-sm text-muted-foreground">{label}</p>
+        <p className="text-sm text-muted-foreground truncate">{label}</p>
       </div>
     </div>
   );
 }
 
-function ShiprocketStatusBadge({ awb, shiprocketOrderId }: { awb?: string; shiprocketOrderId?: string }) {
-  if (awb)               return <Badge variant="default"  className="bg-green-500/15 text-green-700 border-green-500/30">AWB Assigned</Badge>;
-  if (shiprocketOrderId) return <Badge variant="secondary" className="bg-blue-500/15 text-blue-700 border-blue-500/30">SR Created</Badge>;
-  return <Badge variant="outline" className="text-muted-foreground">Not Synced</Badge>;
+function shiprocketSyncStatus(awb?: string, shiprocketOrderId?: string) {
+  if (awb) return "AWB Assigned";
+  if (shiprocketOrderId) return "SR Created";
+  return "Not Synced";
 }
 
 export default function Shiprocket() {
@@ -116,6 +116,72 @@ export default function Shiprocket() {
     toast.success("Copied!");
   }
 
+  function renderShiprocketActions(order: any) {
+    return (
+      <>
+        {/* Track */}
+        <Button
+          variant="ghost" size="sm"
+          onClick={() => openTracking(order)}
+          title="Track shipment"
+        >
+          <MapPin className="w-3.5 h-3.5" />
+        </Button>
+
+        {/* Generate AWB - only if SR order exists but no AWB */}
+        {order.shiprocketShipmentId && !order.shiprocketAwb && (
+          <Button
+            variant="outline" size="sm"
+            onClick={() => awbMutation.mutate(order._id)}
+            disabled={awbMutation.isPending}
+            title="Generate AWB"
+          >
+            <Tag className="w-3.5 h-3.5" />
+          </Button>
+        )}
+
+        {/* Request Pickup */}
+        {order.shiprocketAwb && order.status !== "shipped" && order.status !== "delivered" && (
+          <Button
+            variant="outline" size="sm"
+            onClick={() => pickupMutation.mutate(order._id)}
+            disabled={pickupMutation.isPending}
+            title="Request Pickup"
+          >
+            <Truck className="w-3.5 h-3.5" />
+          </Button>
+        )}
+
+        {/* Label */}
+        {order.shiprocketShipmentId && (
+          <Button
+            variant="outline" size="sm"
+            onClick={() => labelMutation.mutate(order._id)}
+            disabled={labelMutation.isPending}
+            title="Generate Label"
+          >
+            <ExternalLink className="w-3.5 h-3.5" />
+          </Button>
+        )}
+
+        {/* Cancel */}
+        {order.shiprocketOrderId && !["shipped", "delivered", "cancelled"].includes(order.status) && (
+          <Button
+            variant="ghost" size="sm"
+            className="text-destructive hover:text-destructive"
+            onClick={() => {
+              if (confirm("Cancel this order in Shiprocket?")) cancelMutation.mutate(order._id);
+            }}
+            disabled={cancelMutation.isPending}
+            title="Cancel in Shiprocket"
+          >
+            <XCircle className="w-3.5 h-3.5" />
+          </Button>
+        )}
+      </>
+    );
+  }
+
   return (
     <div className="space-y-6 animate-fade-in">
       {/* Header */}
@@ -130,7 +196,7 @@ export default function Shiprocket() {
       </div>
 
       {/* Stats */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <StatCard icon={Package}      label="Total Orders"    value={stats?.total ?? 0}          color="bg-primary/10 text-primary" />
         <StatCard icon={Truck}        label="In Shiprocket"   value={stats?.withShiprocket ?? 0} color="bg-blue-500/10 text-blue-600" />
         <StatCard icon={Clock}        label="Pending AWB"     value={stats?.pendingAwb ?? 0}     color="bg-yellow-500/10 text-yellow-600" />
@@ -171,149 +237,128 @@ export default function Shiprocket() {
             <p>No orders found</p>
           </div>
         ) : (
-          <Table>
-            <TableHeader>
-              <TableRow className="border-border/50 hover:bg-transparent">
-                <TableHead>Order</TableHead>
-                <TableHead>Customer</TableHead>
-                <TableHead>Payment</TableHead>
-                <TableHead>Order Status</TableHead>
-                <TableHead>Shiprocket</TableHead>
-                <TableHead>AWB / Courier</TableHead>
-                <TableHead>Date</TableHead>
-                <TableHead className="text-right">Actions</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {orders.map((order: any) => (
-                <TableRow key={order._id} className="border-border/50">
-                  {/* Order ID */}
-                  <TableCell>
-                    <div className="font-mono text-xs text-muted-foreground">{order._id?.slice(-8)}</div>
-                    <div className="text-xs mt-0.5">₹{order.total}</div>
-                  </TableCell>
+          <>
+            {/* Desktop / tablet table */}
+            <div className="hidden md:block">
+              <Table>
+                <TableHeader>
+                  <TableRow className="border-border/50 hover:bg-transparent">
+                    <TableHead>Order</TableHead>
+                    <TableHead>Customer</TableHead>
+                    <TableHead>Payment</TableHead>
+                    <TableHead>Order Status</TableHead>
+                    <TableHead>Shiprocket</TableHead>
+                    <TableHead>AWB / Courier</TableHead>
+                    <TableHead>Date</TableHead>
+                    <TableHead className="text-right">Actions</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {orders.map((order: any) => (
+                    <TableRow key={order._id} className="border-border/50">
+                      {/* Order ID */}
+                      <TableCell>
+                        <div className="font-mono text-xs text-muted-foreground">{order._id?.slice(-8)}</div>
+                        <div className="text-xs mt-0.5 font-mono">₹{order.total}</div>
+                      </TableCell>
 
-                  {/* Customer */}
-                  <TableCell>
-                    <div className="text-sm font-medium">{order.user?.name ?? "—"}</div>
-                    <div className="text-xs text-muted-foreground">{order.user?.email}</div>
-                  </TableCell>
+                      {/* Customer */}
+                      <TableCell>
+                        <div className="text-sm font-medium">{order.user?.name ?? "—"}</div>
+                        <div className="text-xs text-muted-foreground">{order.user?.email}</div>
+                      </TableCell>
 
-                  {/* Payment */}
-                  <TableCell>
-                    <Badge variant={order.paymentStatus === "paid" ? "default" : "outline"}
-                      className={order.paymentStatus === "paid" ? "bg-green-500/15 text-green-700 border-green-500/30" : ""}>
-                      {order.paymentMethod === "cod" ? "COD" : order.paymentStatus === "paid" ? "Paid" : "Unpaid"}
-                    </Badge>
-                  </TableCell>
+                      {/* Payment */}
+                      <TableCell>
+                        <StatusBadge status={order.paymentMethod === "cod" ? "COD" : order.paymentStatus === "paid" ? "Paid" : "Unpaid"} />
+                      </TableCell>
 
-                  {/* Order status */}
-                  <TableCell>
-                    <Badge variant="outline" className="capitalize">{order.status}</Badge>
-                  </TableCell>
+                      {/* Order status */}
+                      <TableCell>
+                        <StatusBadge status={order.status} />
+                      </TableCell>
 
-                  {/* Shiprocket sync status */}
-                  <TableCell>
-                    <div className="flex flex-col gap-1">
-                      <ShiprocketStatusBadge awb={order.shiprocketAwb} shiprocketOrderId={order.shiprocketOrderId} />
-                      {order.shiprocketOrderId && (
-                        <span className="text-[10px] text-muted-foreground font-mono">SR#{order.shiprocketOrderId}</span>
-                      )}
-                    </div>
-                  </TableCell>
-
-                  {/* AWB */}
-                  <TableCell>
-                    {order.shiprocketAwb ? (
-                      <div className="space-y-0.5">
-                        <div className="flex items-center gap-1">
-                          <span className="font-mono text-xs">{order.shiprocketAwb}</span>
-                          <button onClick={() => copyToClipboard(order.shiprocketAwb)} className="text-muted-foreground hover:text-foreground">
-                            <Copy className="w-3 h-3" />
-                          </button>
+                      {/* Shiprocket sync status */}
+                      <TableCell>
+                        <div className="flex flex-col gap-1">
+                          <StatusBadge status={shiprocketSyncStatus(order.shiprocketAwb, order.shiprocketOrderId)} />
+                          {order.shiprocketOrderId && (
+                            <span className="text-[10px] text-muted-foreground font-mono">SR#{order.shiprocketOrderId}</span>
+                          )}
                         </div>
-                        {order.shiprocketCourier && (
-                          <span className="text-[11px] text-muted-foreground">{order.shiprocketCourier}</span>
+                      </TableCell>
+
+                      {/* AWB */}
+                      <TableCell>
+                        {order.shiprocketAwb ? (
+                          <div className="space-y-0.5">
+                            <div className="flex items-center gap-1">
+                              <span className="font-mono text-xs">{order.shiprocketAwb}</span>
+                              <button onClick={() => copyToClipboard(order.shiprocketAwb)} className="text-muted-foreground hover:text-foreground">
+                                <Copy className="w-3 h-3" />
+                              </button>
+                            </div>
+                            {order.shiprocketCourier && (
+                              <span className="text-[11px] text-muted-foreground">{order.shiprocketCourier}</span>
+                            )}
+                          </div>
+                        ) : (
+                          <span className="text-xs text-muted-foreground">—</span>
                         )}
-                      </div>
-                    ) : (
-                      <span className="text-xs text-muted-foreground">—</span>
-                    )}
-                  </TableCell>
+                      </TableCell>
 
-                  {/* Date */}
-                  <TableCell className="text-xs text-muted-foreground">
-                    {order.createdAt ? new Date(order.createdAt).toLocaleDateString("en-IN") : "—"}
-                  </TableCell>
+                      {/* Date */}
+                      <TableCell className="text-xs text-muted-foreground">
+                        {order.createdAt ? new Date(order.createdAt).toLocaleDateString("en-IN") : "—"}
+                      </TableCell>
 
-                  {/* Actions */}
-                  <TableCell>
-                    <div className="flex items-center justify-end gap-1 flex-wrap">
-                      {/* Track */}
-                      <Button
-                        variant="ghost" size="sm"
-                        onClick={() => openTracking(order)}
-                        title="Track shipment"
-                      >
-                        <MapPin className="w-3.5 h-3.5" />
-                      </Button>
+                      {/* Actions */}
+                      <TableCell>
+                        <div className="flex items-center justify-end gap-1 flex-wrap">
+                          {renderShiprocketActions(order)}
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
 
-                      {/* Generate AWB - only if SR order exists but no AWB */}
-                      {order.shiprocketShipmentId && !order.shiprocketAwb && (
-                        <Button
-                          variant="outline" size="sm"
-                          onClick={() => awbMutation.mutate(order._id)}
-                          disabled={awbMutation.isPending}
-                          title="Generate AWB"
-                        >
-                          <Tag className="w-3.5 h-3.5" />
-                        </Button>
-                      )}
-
-                      {/* Request Pickup */}
-                      {order.shiprocketAwb && order.status !== "shipped" && order.status !== "delivered" && (
-                        <Button
-                          variant="outline" size="sm"
-                          onClick={() => pickupMutation.mutate(order._id)}
-                          disabled={pickupMutation.isPending}
-                          title="Request Pickup"
-                        >
-                          <Truck className="w-3.5 h-3.5" />
-                        </Button>
-                      )}
-
-                      {/* Label */}
-                      {order.shiprocketShipmentId && (
-                        <Button
-                          variant="outline" size="sm"
-                          onClick={() => labelMutation.mutate(order._id)}
-                          disabled={labelMutation.isPending}
-                          title="Generate Label"
-                        >
-                          <ExternalLink className="w-3.5 h-3.5" />
-                        </Button>
-                      )}
-
-                      {/* Cancel */}
-                      {order.shiprocketOrderId && !["shipped", "delivered", "cancelled"].includes(order.status) && (
-                        <Button
-                          variant="ghost" size="sm"
-                          className="text-destructive hover:text-destructive"
-                          onClick={() => {
-                            if (confirm("Cancel this order in Shiprocket?")) cancelMutation.mutate(order._id);
-                          }}
-                          disabled={cancelMutation.isPending}
-                          title="Cancel in Shiprocket"
-                        >
-                          <XCircle className="w-3.5 h-3.5" />
-                        </Button>
-                      )}
+            {/* Mobile card list */}
+            <div className="md:hidden divide-y divide-border/50">
+              {orders.map((order: any) => (
+                <div key={order._id} className="p-4 space-y-2">
+                  <div className="flex items-start justify-between gap-2">
+                    <span className="font-mono text-xs text-muted-foreground">{order._id?.slice(-8)}</span>
+                    <span className="font-mono text-sm font-medium shrink-0">₹{order.total}</span>
+                  </div>
+                  <div className="min-w-0">
+                    <p className="text-sm font-medium truncate">{order.user?.name ?? "—"}</p>
+                    <p className="text-xs text-muted-foreground truncate">{order.user?.email}</p>
+                  </div>
+                  <div className="flex items-center gap-1.5 flex-wrap">
+                    <StatusBadge status={order.status} />
+                    <StatusBadge status={order.paymentMethod === "cod" ? "COD" : order.paymentStatus === "paid" ? "Paid" : "Unpaid"} />
+                    <StatusBadge status={shiprocketSyncStatus(order.shiprocketAwb, order.shiprocketOrderId)} />
+                  </div>
+                  {order.shiprocketAwb && (
+                    <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                      <span className="font-mono">{order.shiprocketAwb}</span>
+                      {order.shiprocketCourier && <span>· {order.shiprocketCourier}</span>}
                     </div>
-                  </TableCell>
-                </TableRow>
+                  )}
+                  <div className="flex items-center justify-between pt-1">
+                    <span className="text-xs text-muted-foreground">
+                      {order.createdAt ? new Date(order.createdAt).toLocaleDateString("en-IN") : "—"}
+                    </span>
+                    <div className="flex items-center gap-1 flex-wrap justify-end">
+                      {renderShiprocketActions(order)}
+                    </div>
+                  </div>
+                </div>
               ))}
-            </TableBody>
-          </Table>
+            </div>
+          </>
         )}
       </div>
 
@@ -360,7 +405,7 @@ export default function Shiprocket() {
                 {trackData?.tracking_data?.current_status && (
                   <div className="flex justify-between">
                     <span className="text-muted-foreground">Status</span>
-                    <Badge className="capitalize">{trackData.tracking_data.current_status}</Badge>
+                    <StatusBadge status={trackData.tracking_data.current_status} />
                   </div>
                 )}
                 {trackData?.tracking_data?.etd && (

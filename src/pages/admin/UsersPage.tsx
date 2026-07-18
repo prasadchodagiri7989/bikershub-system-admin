@@ -62,62 +62,119 @@ export default function UsersPage() {
         ) : filtered.length === 0 ? (
           <EmptyState icon={UsersIcon} title="No users found" description="No users match your search." />
         ) : (
-          <Table>
-            <TableHeader>
-              <TableRow className="border-border/50 hover:bg-transparent">
-                <TableHead>Name</TableHead>
-                <TableHead>Email</TableHead>
-                <TableHead>Phone</TableHead>
-                <TableHead>Role</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead>Joined</TableHead>
-                <TableHead className="text-right">Actions</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
+          <>
+            {/* Desktop / tablet table */}
+            <div className="hidden md:block">
+              <Table>
+                <TableHeader>
+                  <TableRow className="border-border/50 hover:bg-transparent">
+                    <TableHead>Name</TableHead>
+                    <TableHead>Email</TableHead>
+                    <TableHead>Phone</TableHead>
+                    <TableHead>Role</TableHead>
+                    <TableHead>Status</TableHead>
+                    <TableHead>Joined</TableHead>
+                    <TableHead className="text-right">Actions</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {filtered.map((user: any) => {
+                    const isAdmin = user.role === "admin" || user.isAdmin;
+                    const isActive = user.isActive !== false;
+                    const userId = user._id || user.id;
+                    return (
+                      <TableRow key={userId} className="border-border/50">
+                        <TableCell className="font-medium">{user.name}</TableCell>
+                        <TableCell className="text-muted-foreground">{user.email}</TableCell>
+                        <TableCell className="text-muted-foreground font-mono">{user.phone || "N/A"}</TableCell>
+                        <TableCell><StatusBadge status={isAdmin ? "Admin" : "Customer"} /></TableCell>
+                        <TableCell><StatusBadge status={isActive ? "active" : "inactive"} /></TableCell>
+                        <TableCell className="text-muted-foreground text-sm">
+                          {user.createdAt ? new Date(user.createdAt).toLocaleDateString() : "N/A"}
+                        </TableCell>
+                        <TableCell className="text-right">
+                          <div className="flex items-center justify-end gap-1">
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              disabled={promoteMutation.isPending}
+                              onClick={() => promoteMutation.mutate({ id: userId, role: isAdmin ? "user" : "admin" })}
+                              className="text-xs"
+                            >
+                              <Shield className="w-3.5 h-3.5 mr-1" />
+                              {isAdmin ? "Demote" : "Promote"}
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              disabled={toggleActiveMutation.isPending}
+                              onClick={() => toggleActiveMutation.mutate(userId)}
+                              className={`text-xs ${isActive ? "text-destructive" : "text-green-500"}`}
+                            >
+                              <Ban className="w-3.5 h-3.5 mr-1" />
+                              {isActive ? "Deactivate" : "Activate"}
+                            </Button>
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    );
+                  })}
+                </TableBody>
+              </Table>
+            </div>
+
+            {/* Mobile card list */}
+            <div className="md:hidden divide-y divide-border/50">
               {filtered.map((user: any) => {
                 const isAdmin = user.role === "admin" || user.isAdmin;
                 const isActive = user.isActive !== false;
                 const userId = user._id || user.id;
                 return (
-                  <TableRow key={userId} className="border-border/50">
-                    <TableCell className="font-medium">{user.name}</TableCell>
-                    <TableCell className="text-muted-foreground">{user.email}</TableCell>
-                    <TableCell className="text-muted-foreground">{user.phone || "N/A"}</TableCell>
-                    <TableCell><StatusBadge status={isAdmin ? "Admin" : "Customer"} /></TableCell>
-                    <TableCell><StatusBadge status={isActive ? "active" : "inactive"} /></TableCell>
-                    <TableCell className="text-muted-foreground text-sm">
-                      {user.createdAt ? new Date(user.createdAt).toLocaleDateString() : "N/A"}
-                    </TableCell>
-                    <TableCell className="text-right">
-                      <div className="flex items-center justify-end gap-1">
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          disabled={promoteMutation.isPending}
-                          onClick={() => promoteMutation.mutate({ id: userId, role: isAdmin ? "user" : "admin" })}
-                          className="text-xs"
-                        >
-                          <Shield className="w-3.5 h-3.5 mr-1" />
-                          {isAdmin ? "Demote" : "Promote"}
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          disabled={toggleActiveMutation.isPending}
-                          onClick={() => toggleActiveMutation.mutate(userId)}
-                          className={`text-xs ${isActive ? "text-destructive" : "text-green-500"}`}
-                        >
-                          <Ban className="w-3.5 h-3.5 mr-1" />
-                          {isActive ? "Deactivate" : "Activate"}
-                        </Button>
+                  <div key={userId} className="p-4">
+                    <div className="flex items-start justify-between gap-2">
+                      <div className="min-w-0">
+                        <p className="font-medium text-sm truncate">{user.name}</p>
+                        <p className="text-xs text-muted-foreground truncate">{user.email}</p>
                       </div>
-                    </TableCell>
-                  </TableRow>
+                    </div>
+                    <div className="flex items-center gap-2 mt-2">
+                      <StatusBadge status={isAdmin ? "Admin" : "Customer"} />
+                      <StatusBadge status={isActive ? "active" : "inactive"} />
+                    </div>
+                    <div className="flex items-center justify-between mt-2">
+                      <span className="text-xs text-muted-foreground">
+                        {user.phone ? <span className="font-mono">{user.phone}</span> : "N/A"}
+                        {" · "}
+                        {user.createdAt ? new Date(user.createdAt).toLocaleDateString() : "N/A"}
+                      </span>
+                    </div>
+                    <div className="flex items-center gap-1 mt-2">
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        disabled={promoteMutation.isPending}
+                        onClick={() => promoteMutation.mutate({ id: userId, role: isAdmin ? "user" : "admin" })}
+                        className="text-xs"
+                      >
+                        <Shield className="w-3.5 h-3.5 mr-1" />
+                        {isAdmin ? "Demote" : "Promote"}
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        disabled={toggleActiveMutation.isPending}
+                        onClick={() => toggleActiveMutation.mutate(userId)}
+                        className={`text-xs ${isActive ? "text-destructive" : "text-green-500"}`}
+                      >
+                        <Ban className="w-3.5 h-3.5 mr-1" />
+                        {isActive ? "Deactivate" : "Activate"}
+                      </Button>
+                    </div>
+                  </div>
                 );
               })}
-            </TableBody>
-          </Table>
+            </div>
+          </>
         )}
       </div>
     </div>

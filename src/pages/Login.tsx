@@ -60,7 +60,7 @@ export default function LoginPage() {
         </div>
 
         {/* Card */}
-        <div className="bg-card border border-border/50 rounded-xl p-6 shadow-sm">
+        <div className="bg-card border border-border/50 rounded-xl p-6 md:p-8 shadow-sm">
           <form onSubmit={handleSubmit} className="space-y-4">
             {error && (
               <Alert variant="destructive">

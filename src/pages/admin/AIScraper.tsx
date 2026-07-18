@@ -125,7 +125,7 @@ export default function AIScraper() {
       <form onSubmit={handleScrape} className="rounded-xl border border-border/50 bg-card p-6 space-y-4 max-w-3xl">
         <div className="space-y-2">
           <Label className="text-sm font-semibold">Website URL to Extract</Label>
-          <div className="flex gap-2">
+          <div className="flex flex-col sm:flex-row gap-2">
             <Input
               type="text"
               placeholder="e.g. https://www.shoei-helmets.com/products/neotec-3"
@@ -133,8 +133,9 @@ export default function AIScraper() {
               onChange={(e) => setUrl(e.target.value)}
               disabled={scrapeMutation.isPending}
               required
+              className="min-w-0"
             />
-            <Button type="submit" disabled={scrapeMutation.isPending} className="gap-2">
+            <Button type="submit" disabled={scrapeMutation.isPending} className="gap-2 shrink-0">
               {scrapeMutation.isPending ? (
                 <>
                   <div className="w-4 h-4 border-2 border-primary-foreground border-t-transparent rounded-full animate-spin" />
@@ -156,12 +157,12 @@ export default function AIScraper() {
 
       {products.length > 0 && (
         <div className="space-y-4 animate-fade-in">
-          <div className="flex items-center justify-between">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
             <h3 className="font-semibold text-lg">Generated Preview Listings</h3>
             <Button
               onClick={handleImport}
               disabled={selectedIndices.size === 0 || importMutation.isPending}
-              className="gap-2 bg-success hover:bg-success/90 text-success-foreground"
+              className="gap-2 bg-success hover:bg-success/90 text-success-foreground w-full sm:w-auto"
             >
               {importMutation.isPending ? (
                 "Importing..."

@@ -32,12 +32,15 @@ export default function Dashboard() {
     <div className="space-y-6 animate-fade-in">
       <PageHeader title="Dashboard" description="Overview of your BikersHub platform" />
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4">
-        <StatsCard title="Total Revenue" value={`₹${Number(totalRevenue).toLocaleString()}`} change={stats?.totalRevenue?.change ?? summary?.revenueChange ?? "—"} changeType={stats?.totalRevenue?.changeType ?? "positive"} icon={DollarSign} description="vs last month" />
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+        <StatsCard title="Total Revenue" value={`₹${Number(totalRevenue).toLocaleString()}`} valueClassName="font-mono" change={stats?.totalRevenue?.change ?? summary?.revenueChange ?? "—"} changeType={stats?.totalRevenue?.changeType ?? "positive"} icon={DollarSign} description="vs last month" />
         <StatsCard title="Total Orders" value={totalOrders} change={stats?.totalOrders?.change ?? summary?.ordersChange ?? "—"} changeType={stats?.totalOrders?.changeType ?? "positive"} icon={ShoppingCart} description="vs last month" />
         <StatsCard title="Total Users" value={totalUsers} change={stats?.totalUsers?.change ?? "—"} changeType={stats?.totalUsers?.changeType ?? "positive"} icon={Users} description="vs last month" />
+      </div>
+
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
         <StatsCard title="Total Products" value={totalProducts} change={stats?.totalProducts?.change ?? "—"} changeType="positive" icon={Package} description="in catalog" />
-        <StatsCard title="Avg. Order Value" value={`₹${Number(avgOrderValue).toLocaleString()}`} change={summary?.avgOrderChange ?? "—"} changeType="positive" icon={TrendingUp} />
+        <StatsCard title="Avg. Order Value" value={`₹${Number(avgOrderValue).toLocaleString()}`} valueClassName="font-mono" change={summary?.avgOrderChange ?? "—"} changeType="positive" icon={TrendingUp} />
         <StatsCard title="New Users (30d)" value={summary?.newUsers ?? 0} change={summary?.usersChange ?? "—"} changeType="positive" icon={BarChart3} />
       </div>
 

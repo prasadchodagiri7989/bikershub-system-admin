@@ -21,10 +21,10 @@ async function request<T>(path: string, options?: RequestInit): Promise<T> {
   return res.json();
 }
 
-async function upload<T>(path: string, formData: FormData): Promise<T> {
+async function upload<T>(path: string, formData: FormData, method: "POST" | "PUT" = "POST"): Promise<T> {
   const token = localStorage.getItem("admin_token");
   const res = await fetch(`${API_BASE}${path}`, {
-    method: "POST",
+    method,
     headers: token ? { Authorization: `Bearer ${token}` } : {},
     body: formData,
   });
@@ -41,6 +41,9 @@ export const api = {
   getProduct: (id: string) => request<any>(`/products/${id}`),
   createProduct: (data: any) => request<any>("/products", { method: "POST", body: JSON.stringify(data) }),
   updateProduct: (id: string, data: any) => request<any>(`/products/${id}`, { method: "PUT", body: JSON.stringify(data) }),
+  // Multipart variants: used when the admin has staged new image files (field name "images", max 5).
+  createProductMultipart: (formData: FormData) => upload<any>("/products", formData, "POST"),
+  updateProductMultipart: (id: string, formData: FormData) => upload<any>(`/products/${id}`, formData, "PUT"),
   deleteProduct: (id: string) => request<any>(`/products/${id}`, { method: "DELETE" }),
 
   // Orders
