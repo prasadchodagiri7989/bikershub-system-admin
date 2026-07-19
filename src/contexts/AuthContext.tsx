@@ -1,5 +1,5 @@
-import { createContext, useContext, useState, useCallback, ReactNode } from "react";
-import { API_BASE } from "@/lib/api";
+import { createContext, useContext, useState, useCallback, useEffect, ReactNode } from "react";
+import { API_BASE, api, onAdminAuthRefresh, refreshAdminAccessToken } from "@/lib/api";
 
 interface AuthUser {
   id: string;
@@ -14,6 +14,7 @@ interface AuthContextValue {
   login: (email: string, password: string) => Promise<void>;
   logout: () => void;
   isAuthenticated: boolean;
+  isLoading: boolean;
 }
 
 const AuthContext = createContext<AuthContextValue | null>(null);
@@ -38,11 +39,27 @@ function loadUser(): AuthUser | null {
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<AuthUser | null>(loadUser);
+  const [isLoading, setIsLoading] = useState(true);
+
+  // Rehydrate from localStorage immediately, then validate/renew the session
+  // in the background via the httpOnly refresh cookie so admins don't get
+  // bounced to /login just because the 15-minute access token expired.
+  useEffect(() => {
+    refreshAdminAccessToken().finally(() => setIsLoading(false));
+  }, []);
+
+  useEffect(() => {
+    onAdminAuthRefresh((tok, u) => {
+      if (!tok || !u) { setUser(null); return; }
+      setUser({ id: u.id, name: u.name, email: u.email, role: u.role, token: tok });
+    });
+  }, []);
 
   const login = useCallback(async (email: string, password: string) => {
     const res = await fetch(`${API_BASE}/auth/login`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
+      credentials: "include",
       body: JSON.stringify({ email, password }),
     });
 
@@ -72,13 +89,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const logout = useCallback(() => {
+    // Fire-and-forget the server call (revokes the refresh cookie); always
+    // clear client-side state regardless of whether it succeeds.
+    api.logout().catch(() => null);
     localStorage.removeItem("admin_token");
     localStorage.removeItem(STORAGE_KEY);
     setUser(null);
   }, []);
 
   return (
-    <AuthContext.Provider value={{ user, login, logout, isAuthenticated: !!user }}>
+    <AuthContext.Provider value={{ user, login, logout, isAuthenticated: !!user, isLoading }}>
       {children}
     </AuthContext.Provider>
   );

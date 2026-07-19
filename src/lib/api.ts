@@ -1,6 +1,5 @@
 export const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:5000/api";
 
-
 function getHeaders(): HeadersInit {
   const token = localStorage.getItem("admin_token");
   return {
@@ -9,11 +8,62 @@ function getHeaders(): HeadersInit {
   };
 }
 
-async function request<T>(path: string, options?: RequestInit): Promise<T> {
+// ── Silent access-token refresh ────────────────────────────────
+// The refresh token lives in an httpOnly cookie sent automatically
+// (credentials: "include") — this exchanges it for a fresh short-lived
+// access token once the current one has expired, so admins stay logged in
+// without re-entering their password every 15 minutes.
+type AdminAuthListener = (token: string | null, user: any | null) => void;
+let authListener: AdminAuthListener | null = null;
+export function onAdminAuthRefresh(listener: AdminAuthListener) { authListener = listener; }
+
+let refreshPromise: Promise<string | null> | null = null;
+
+export async function refreshAdminAccessToken(): Promise<string | null> {
+  if (refreshPromise) return refreshPromise;
+  refreshPromise = (async () => {
+    try {
+      const res = await fetch(`${API_BASE}/auth/refresh`, { method: "POST", credentials: "include" });
+      if (!res.ok) {
+        localStorage.removeItem("admin_token");
+        localStorage.removeItem("admin_user");
+        authListener?.(null, null);
+        return null;
+      }
+      const data = await res.json();
+      if (data.user?.role !== "admin") {
+        localStorage.removeItem("admin_token");
+        localStorage.removeItem("admin_user");
+        authListener?.(null, null);
+        return null;
+      }
+      localStorage.setItem("admin_token", data.token);
+      localStorage.setItem("admin_user", JSON.stringify({ ...data.user, token: data.token }));
+      authListener?.(data.token, data.user);
+      return data.token as string;
+    } catch {
+      return null;
+    } finally {
+      refreshPromise = null;
+    }
+  })();
+  return refreshPromise;
+}
+
+const NO_RETRY_PATHS = ["/auth/login", "/auth/refresh"];
+
+async function request<T>(path: string, options?: RequestInit, _retry = true): Promise<T> {
   const res = await fetch(`${API_BASE}${path}`, {
     ...options,
     headers: { ...getHeaders(), ...(options?.headers || {}) },
+    credentials: "include",
   });
+
+  if (res.status === 401 && _retry && !NO_RETRY_PATHS.includes(path)) {
+    const newToken = await refreshAdminAccessToken();
+    if (newToken) return request<T>(path, options, false);
+  }
+
   if (!res.ok) {
     const err = await res.json().catch(() => ({ message: res.statusText }));
     throw new Error(err.message || `API Error ${res.status}`);
@@ -21,13 +71,20 @@ async function request<T>(path: string, options?: RequestInit): Promise<T> {
   return res.json();
 }
 
-async function upload<T>(path: string, formData: FormData, method: "POST" | "PUT" = "POST"): Promise<T> {
+async function upload<T>(path: string, formData: FormData, method: "POST" | "PUT" = "POST", _retry = true): Promise<T> {
   const token = localStorage.getItem("admin_token");
   const res = await fetch(`${API_BASE}${path}`, {
     method,
     headers: token ? { Authorization: `Bearer ${token}` } : {},
     body: formData,
+    credentials: "include",
   });
+
+  if (res.status === 401 && _retry) {
+    const newToken = await refreshAdminAccessToken();
+    if (newToken) return upload<T>(path, formData, method, false);
+  }
+
   if (!res.ok) {
     const err = await res.json().catch(() => ({ message: res.statusText }));
     throw new Error(err.message || `API Error ${res.status}`);
@@ -119,6 +176,7 @@ export const api = {
 
   // Auth
   login: (email: string, password: string) => request<any>("/auth/login", { method: "POST", body: JSON.stringify({ email, password }) }),
+  logout: () => request<any>("/auth/logout", { method: "POST" }),
 
   // Settings
   getSettings: () => request<any>("/admin/settings"),
