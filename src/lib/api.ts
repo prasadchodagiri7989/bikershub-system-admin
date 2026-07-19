@@ -51,6 +51,19 @@ export const api = {
   getOrder: (id: string) => request<any>(`/orders/${id}`),
   updateOrderStatus: (id: string, data: any) => request<any>(`/orders/${id}/status`, { method: "PUT", body: JSON.stringify(data) }),
 
+  // Homepage content (categories, featured collections, trending cards, limited-time offers)
+  getHomeItems: (resource: string) => request<{ items: any[] }>(`/home/${resource}`),
+  createHomeItem: (resource: string, data: any) => request<{ item: any }>(`/home/${resource}`, { method: "POST", body: JSON.stringify(data) }),
+  updateHomeItem: (resource: string, id: string, data: any) => request<{ item: any }>(`/home/${resource}/${id}`, { method: "PUT", body: JSON.stringify(data) }),
+  deleteHomeItem: (resource: string, id: string) => request<{ success: boolean }>(`/home/${resource}/${id}`, { method: "DELETE" }),
+  moveHomeItem: (resource: string, id: string, direction: "up" | "down") =>
+    request<{ items: any[] }>(`/home/${resource}/${id}/move`, { method: "PUT", body: JSON.stringify({ direction }) }),
+  uploadHomeImage: (file: File) => {
+    const fd = new FormData();
+    fd.append("image", file);
+    return upload<{ url: string }>("/home/upload-image", fd, "POST");
+  },
+
   // Bikes (shared brand/model master data — also powers the customer "Shop by Bike" list)
   getBikes: () => request<{ brands: Record<string, string[]> }>("/bikes"),
   addBikeBrand: (brand: string) =>
