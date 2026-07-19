@@ -5,7 +5,7 @@ import { API_BASE } from "@/lib/api";
 import {
   LayoutDashboard, Package, ShoppingCart, Users, Star, BarChart3,
   Brain, Settings, ChevronLeft, ChevronRight, Search, Bell, Moon, Sun,
-  LogOut, Menu, Truck, CreditCard, Globe, Plus, Sparkles,
+  LogOut, Menu, Truck, CreditCard, Globe, Plus, Sparkles, Bike,
 } from "lucide-react";
 import { useTheme } from "@/hooks/useTheme";
 import { Button } from "@/components/ui/button";
@@ -34,6 +34,7 @@ const navSections = [
     items: [
       { label: "Products", icon: Package, path: "/admin/products" },
       { label: "AI Scraper", icon: Globe, path: "/admin/ai-scraper" },
+      { label: "Bike Catalog", icon: Bike, path: "/admin/bike-catalog" },
     ],
   },
   {

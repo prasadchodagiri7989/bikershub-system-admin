@@ -51,6 +51,19 @@ export const api = {
   getOrder: (id: string) => request<any>(`/orders/${id}`),
   updateOrderStatus: (id: string, data: any) => request<any>(`/orders/${id}/status`, { method: "PUT", body: JSON.stringify(data) }),
 
+  // Bikes (shared brand/model master data — also powers the customer "Shop by Bike" list)
+  getBikes: () => request<{ brands: Record<string, string[]> }>("/bikes"),
+  addBikeBrand: (brand: string) =>
+    request<{ brands: Record<string, string[]> }>("/bikes/brands", { method: "POST", body: JSON.stringify({ brand }) }),
+  renameBikeBrand: (brand: string, newName: string) =>
+    request<{ brands: Record<string, string[]> }>(`/bikes/brands/${encodeURIComponent(brand)}`, { method: "PUT", body: JSON.stringify({ brand: newName }) }),
+  deleteBikeBrand: (brand: string) =>
+    request<{ brands: Record<string, string[]> }>(`/bikes/brands/${encodeURIComponent(brand)}`, { method: "DELETE" }),
+  addBikeModel: (brand: string, model: string) =>
+    request<{ brands: Record<string, string[]> }>(`/bikes/brands/${encodeURIComponent(brand)}/models`, { method: "POST", body: JSON.stringify({ model }) }),
+  deleteBikeModel: (brand: string, model: string) =>
+    request<{ brands: Record<string, string[]> }>(`/bikes/brands/${encodeURIComponent(brand)}/models/${encodeURIComponent(model)}`, { method: "DELETE" }),
+
   // Users
   getUsers: (params?: string) => request<any>(`/users${params ? `?${params}` : ""}`),
   getUser: (id: string) => request<any>(`/users/${id}`),

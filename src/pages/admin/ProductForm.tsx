@@ -3,7 +3,7 @@ import { useNavigate, useParams } from "react-router-dom";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import {
   ArrowLeft, ArrowRight, Image as ImageIcon, Sparkles, Upload, X, Plus,
-  Trash2, Check, ChevronsUpDown, Package,
+  Trash2, Check, ChevronsUpDown, Package, Bike,
 } from "lucide-react";
 import { api, API_BASE } from "@/lib/api";
 import { PageHeader } from "@/components/admin/SharedComponents";
@@ -16,6 +16,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Checkbox } from "@/components/ui/checkbox";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { cn } from "@/lib/utils";
 
 // ── Types ─────────────────────────────────────────────────────────────────
@@ -104,7 +105,17 @@ export default function ProductForm() {
   const [variants, setVariants] = useState<VariantRow[]>([emptyVariantRow()]);
   const [specs, setSpecs] = useState<SpecRow[]>([emptySpecRow()]);
   const [compatibleBikes, setCompatibleBikes] = useState<string[]>([]);
-  const [bikeInput, setBikeInput] = useState("");
+  const [bikePickerOpen, setBikePickerOpen] = useState(false);
+  const [pickerBrand, setPickerBrand] = useState<string | null>(null);
+  const [pickerSelected, setPickerSelected] = useState<Set<string>>(new Set());
+
+  const { data: bikesData } = useQuery({
+    queryKey: ["bikes-catalog"],
+    queryFn: () => api.getBikes(),
+    staleTime: 10 * 60 * 1000,
+  });
+  const bikeBrands = bikesData?.brands || {};
+  const bikeBrandNames = Object.keys(bikeBrands).sort();
 
   const [categoryOpen, setCategoryOpen] = useState(false);
   const [categorySearch, setCategorySearch] = useState("");
@@ -295,13 +306,28 @@ export default function ProductForm() {
   const addSpecRow = () => setSpecs((prev) => [...prev, emptySpecRow()]);
   const removeSpecRow = (rowId: string) => setSpecs((prev) => (prev.length > 1 ? prev.filter((r) => r.id !== rowId) : prev));
 
-  // ── Compatible bikes tags ────────────────────────────────────────────
-  const addBike = () => {
-    const v = bikeInput.trim();
-    if (v && !compatibleBikes.includes(v)) setCompatibleBikes((prev) => [...prev, v]);
-    setBikeInput("");
-  };
+  // ── Compatible bikes picker ──────────────────────────────────────────
   const removeBike = (bike: string) => setCompatibleBikes((prev) => prev.filter((b) => b !== bike));
+
+  const openBikePicker = () => {
+    setPickerSelected(new Set(compatibleBikes));
+    setPickerBrand(bikeBrandNames[0] || null);
+    setBikePickerOpen(true);
+  };
+
+  const togglePickerEntry = (entry: string) => {
+    setPickerSelected((prev) => {
+      const next = new Set(prev);
+      if (next.has(entry)) next.delete(entry);
+      else next.add(entry);
+      return next;
+    });
+  };
+
+  const applyBikePicker = () => {
+    setCompatibleBikes(Array.from(pickerSelected).sort());
+    setBikePickerOpen(false);
+  };
 
   // ── Mutation ─────────────────────────────────────────────────────────
   const mutation = useMutation({
@@ -650,17 +676,13 @@ export default function ProductForm() {
                 </div>
 
                 <div className="rounded-xl border border-border/50 bg-card p-6 space-y-4">
-                  <h3 className="font-semibold">Compatible Bikes</h3>
-                  <div className="flex gap-2">
-                    <Input
-                      value={bikeInput}
-                      onChange={(e) => setBikeInput(e.target.value)}
-                      onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); addBike(); } }}
-                      placeholder="Royal Enfield Classic 350"
-                    />
-                    <Button type="button" variant="outline" onClick={addBike}>Add</Button>
+                  <div className="flex items-center justify-between">
+                    <h3 className="font-semibold">Compatible Bikes</h3>
+                    <Button type="button" size="sm" variant="outline" onClick={openBikePicker} className="gap-1.5">
+                      <Bike className="w-3.5 h-3.5" /> Select bikes
+                    </Button>
                   </div>
-                  {compatibleBikes.length > 0 && (
+                  {compatibleBikes.length > 0 ? (
                     <div className="flex flex-wrap gap-2">
                       {compatibleBikes.map((bike) => (
                         <span key={bike} className="status-pill bg-neutral-badge/15 text-neutral-badge inline-flex items-center gap-1">
@@ -671,6 +693,8 @@ export default function ProductForm() {
                         </span>
                       ))}
                     </div>
+                  ) : (
+                    <p className="text-sm text-muted-foreground">No bikes selected — click "Select bikes" to choose from the brand/model catalog.</p>
                   )}
                 </div>
               </>
@@ -756,6 +780,18 @@ export default function ProductForm() {
           </div>
         </div>
       </form>
+
+      <BikePickerDialog
+        open={bikePickerOpen}
+        onOpenChange={setBikePickerOpen}
+        brands={bikeBrandNames}
+        brandModels={bikeBrands}
+        activeBrand={pickerBrand}
+        onActiveBrandChange={setPickerBrand}
+        selected={pickerSelected}
+        onToggle={togglePickerEntry}
+        onApply={applyBikePicker}
+      />
     </div>
   );
 }
@@ -785,6 +821,87 @@ function StepIndicator({ step, maxStepReached, onJump }: { step: number; maxStep
         );
       })}
     </div>
+  );
+}
+
+function BikePickerDialog({
+  open, onOpenChange, brands, brandModels, activeBrand, onActiveBrandChange, selected, onToggle, onApply,
+}: {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  brands: string[];
+  brandModels: Record<string, string[]>;
+  activeBrand: string | null;
+  onActiveBrandChange: (brand: string) => void;
+  selected: Set<string>;
+  onToggle: (entry: string) => void;
+  onApply: () => void;
+}) {
+  const models = activeBrand ? brandModels[activeBrand] || [] : [];
+  const brandSelectedCount = (brand: string) =>
+    (brandModels[brand] || []).filter((m) => selected.has(`${brand} ${m}`)).length;
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="max-w-2xl p-0 gap-0">
+        <DialogHeader className="p-6 pb-4">
+          <DialogTitle>Select compatible bikes</DialogTitle>
+        </DialogHeader>
+        {brands.length === 0 ? (
+          <p className="px-6 pb-6 text-sm text-muted-foreground">No bike catalog data available yet.</p>
+        ) : (
+          <div className="grid grid-cols-[1fr_1.4fr] h-[420px] border-t border-border/50">
+            <div className="overflow-y-auto border-r border-border/50">
+              {brands.map((brand) => {
+                const count = brandSelectedCount(brand);
+                return (
+                  <button
+                    key={brand}
+                    type="button"
+                    onClick={() => onActiveBrandChange(brand)}
+                    className={cn(
+                      "w-full flex items-center justify-between gap-2 px-4 py-2.5 text-left text-sm border-b border-border/30 transition-colors",
+                      activeBrand === brand ? "bg-muted font-medium" : "hover:bg-muted/50"
+                    )}
+                  >
+                    <span>{brand}</span>
+                    {count > 0 && (
+                      <span className="status-pill bg-primary/15 text-primary shrink-0">{count}</span>
+                    )}
+                  </button>
+                );
+              })}
+            </div>
+            <div className="overflow-y-auto p-3 space-y-1">
+              {models.length === 0 ? (
+                <p className="text-sm text-muted-foreground p-3">No models for this brand.</p>
+              ) : (
+                models.map((model) => {
+                  const entry = `${activeBrand} ${model}`;
+                  const checked = selected.has(entry);
+                  return (
+                    <label
+                      key={model}
+                      className="flex items-center gap-2.5 px-2 py-1.5 rounded-md hover:bg-muted/50 cursor-pointer text-sm"
+                    >
+                      <Checkbox checked={checked} onCheckedChange={() => onToggle(entry)} />
+                      {model}
+                    </label>
+                  );
+                })
+              )}
+            </div>
+          </div>
+        )}
+        <DialogFooter className="p-6 pt-4 border-t border-border/50">
+          <span className="text-xs text-muted-foreground mr-auto self-center">
+            {selected.size} bike{selected.size === 1 ? "" : "s"} selected
+          </span>
+          <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>Cancel</Button>
+          <Button type="button" onClick={onApply}>Apply</Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   );
 }
 

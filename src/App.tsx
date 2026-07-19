@@ -20,6 +20,7 @@ const Reviews = lazy(() => import("./pages/admin/Reviews"));
 const Analytics = lazy(() => import("./pages/admin/Analytics"));
 const AIInsights = lazy(() => import("./pages/admin/AIInsights"));
 const AIScraper = lazy(() => import("./pages/admin/AIScraper"));
+const BikeCatalog = lazy(() => import("./pages/admin/BikeCatalog"));
 const SettingsPage = lazy(() => import("./pages/admin/SettingsPage"));
 const ShiprocketPage = lazy(() => import("./pages/admin/Shiprocket"));
 const NotFound = lazy(() => import("./pages/NotFound"));
@@ -67,6 +68,7 @@ const App = () => (
                 <Route path="analytics" element={<Analytics />} />
                 <Route path="ai-insights" element={<AIInsights />} />
                 <Route path="ai-scraper" element={<AIScraper />} />
+                <Route path="bike-catalog" element={<BikeCatalog />} />
                 <Route path="settings" element={<SettingsPage />} />
                 <Route path="shiprocket" element={<ShiprocketPage />} />
               </Route>
