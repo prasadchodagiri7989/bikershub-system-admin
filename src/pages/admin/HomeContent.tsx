@@ -25,6 +25,25 @@ interface FieldConfig {
 }
 
 const RESOURCE_CONFIG: Record<string, { label: string; description: string; fields: FieldConfig[]; listSubtitle: (item: any) => string }> = {
+  hero: {
+    label: "Hero Slides",
+    description: "The full-bleed autoplay banner at the very top of the homepage.",
+    fields: [
+      { key: "image", label: "Background image", type: "image" },
+      { key: "badge", label: "Badge", type: "text", placeholder: "2026 RELEASES", optional: true },
+      { key: "title", label: "Title (use a new line for a line break)", type: "textarea", placeholder: "Gear Up.\nRide Bold." },
+      { key: "description", label: "Description", type: "textarea", placeholder: "Premium helmets, riding gear & accessories..." },
+      { key: "cta1Label", label: "Primary button text", type: "text", placeholder: "Shop Now" },
+      { key: "cta1Path", label: "Primary button link", type: "text", placeholder: "/shop" },
+      { key: "cta2Label", label: "Secondary button text", type: "text", placeholder: "Explore Helmets", optional: true },
+      { key: "cta2Path", label: "Secondary button link", type: "text", placeholder: "/shop?category=Helmets", optional: true },
+      {
+        key: "align", label: "Text alignment", type: "select",
+        options: [{ value: "left", label: "Left" }, { value: "center", label: "Center" }],
+      },
+    ],
+    listSubtitle: (item) => (item.title || "").replace(/\n/g, " "),
+  },
   categories: {
     label: "Categories",
     description: 'Powers the "Shop by Category" strip (with image) on the homepage. The shop filter sidebar uses the name only, no image.',
@@ -80,11 +99,11 @@ const RESOURCE_CONFIG: Record<string, { label: string; description: string; fiel
 };
 
 export default function HomeContentPage() {
-  const [tab, setTab] = useState<keyof typeof RESOURCE_CONFIG>("categories");
+  const [tab, setTab] = useState<keyof typeof RESOURCE_CONFIG>("hero");
 
   return (
     <div className="space-y-6 animate-fade-in">
-      <PageHeader title="Homepage Content" description="Master data for the customer site's homepage — categories, collections, trending cards, and limited-time offers." />
+      <PageHeader title="Homepage Content" description="Master data for the customer site's homepage — hero slides, categories, collections, trending cards, and limited-time offers." />
 
       <Tabs value={tab} onValueChange={(v) => setTab(v as keyof typeof RESOURCE_CONFIG)}>
         <TabsList>
@@ -241,7 +260,11 @@ function ItemDialog({
     const next: Record<string, string> = {};
     for (const f of fields) {
       const v = initial?.[f.key];
-      next[f.key] = f.type === "datetime" && v ? new Date(v).toISOString().slice(0, 16) : (v ?? "");
+      if (v !== undefined && v !== null) {
+        next[f.key] = f.type === "datetime" ? new Date(v).toISOString().slice(0, 16) : v;
+      } else {
+        next[f.key] = f.type === "select" ? f.options![0].value : "";
+      }
     }
     setForm(next);
   }
@@ -271,6 +294,15 @@ function ItemDialog({
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+
+    for (const f of fields) {
+      const v = form[f.key]?.trim?.() ?? form[f.key];
+      if (!v && !f.optional) {
+        toast.error(`${f.label.replace(/\s*\(.*\)$/, "")} is required`);
+        return;
+      }
+    }
+
     const payload: Record<string, any> = {};
     for (const f of fields) {
       const v = form[f.key]?.trim?.() ?? form[f.key];
@@ -281,17 +313,24 @@ function ItemDialog({
     onSubmit(payload);
   };
 
+  const missingRequired = fields.some((f) => {
+    if (f.optional) return false;
+    const v = form[f.key]?.trim?.() ?? form[f.key];
+    return !v;
+  });
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-lg">
-        <DialogHeader>
+      <DialogContent className="max-w-lg max-h-[85vh] flex flex-col p-0 gap-0">
+        <DialogHeader className="p-6 pb-4 shrink-0">
           <DialogTitle>{initial ? "Edit" : "Add"} entry</DialogTitle>
         </DialogHeader>
         <input ref={fileInputRef} type="file" accept="image/*" className="hidden" onChange={handleFileChange} />
-        <form onSubmit={handleSubmit} className="space-y-4">
+        <form onSubmit={handleSubmit} className="flex flex-col flex-1 min-h-0">
+        <div className="space-y-4 overflow-y-auto flex-1 min-h-0 px-6 py-1">
           {fields.map((f) => (
             <div key={f.key} className="space-y-1.5">
-              <Label>{f.label}</Label>
+              <Label>{f.label}{!f.optional && <span className="text-destructive"> *</span>}</Label>
               {f.type === "textarea" ? (
                 <Textarea value={form[f.key] || ""} onChange={(e) => update(f.key, e.target.value)} placeholder={f.placeholder} rows={3} />
               ) : f.type === "select" ? (
@@ -323,9 +362,10 @@ function ItemDialog({
               )}
             </div>
           ))}
-          <DialogFooter>
+        </div>
+          <DialogFooter className="p-6 pt-4 shrink-0 border-t border-border/50">
             <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>Cancel</Button>
-            <Button type="submit" disabled={saving}>{saving ? "Saving..." : initial ? "Save changes" : "Add"}</Button>
+            <Button type="submit" disabled={saving || missingRequired}>{saving ? "Saving..." : initial ? "Save changes" : "Add"}</Button>
           </DialogFooter>
         </form>
       </DialogContent>
